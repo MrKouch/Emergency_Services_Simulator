@@ -1,6 +1,9 @@
+#include <queue>
+using namespace std;
+
 class ThreadsHandler {
 public:
-    
+    queue<int> g = ;
 	
     void foo()
     {
@@ -21,5 +24,5 @@ public:
 
 int main(int argc, char *argv[]) {
 	// TODO: implement the STOMP client
-	return 0;
+	return 0;
 }

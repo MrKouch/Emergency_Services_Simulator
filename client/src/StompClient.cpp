@@ -1,25 +1,24 @@
-class ThreadsHandler {
-public:
-    
-	
-    void foo()
-    {
-        cout << "Thread using non-static member function "
-                "as callable"
-             << endl;
-    }
-    // static member function
-    static void foo1()
-    {
-        cout << "Thread using static member function as "
-                "callable"
-             << endl;
-    }
-};
+#include <queue>
+#include <string>
+#include <iostream>
+using namespace std;
 
+queue<string>* departingMessages = new queue<string>();
 
+void KeyboardThread() {
+	while(1) {
+		const short bufsize = 1024;
+		char buf[bufsize];
+		cin.getline(buf, bufsize);
+		string line(buf);
+		std::cout << "input is:\n" + line << endl;
+		(*departingMessages).push(line);
+	}
+}
 
 int main(int argc, char *argv[]) {
-	// TODO: implement the STOMP client
+
+	KeyboardThread();
+
 	return 0;
 }

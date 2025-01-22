@@ -1,63 +1,150 @@
 #include "../include/StompProtocol.h"
 #include "../include/Frame.h"
+#include <unordered_map>
 
 #include <iostream>
 #include <sstream>
 
 using namespace std;
 
-StompProtocol::StompProtocol() {
-    connectionHandler = new ConnectionHandler("localhost", 7777);
-    departingMessages = new std::queue<Frame>();
-    arrivingMessages = new std::queue<Frame>();
+StompProtocol::StompProtocol(ConnectionHandler* connectionHandler) {
+    departingMessages = new queue<string>();
+    loggedInUser = "";
+    users = {};
+    summaries = {};
 }
 
-StompProtocol::~StompProtocol() {
-    delete connectionHandler;
-    delete departingMessages;
-    delete arrivingMessages;
-}
-
-Frame& StompProtocol::createFrame(string line) {
-    istringstream iss(line);
-    string command;
-    iss >> command;
-    if (command == "CONNECT") {
-        string username;
-        string passcode;
-        iss >> username >> passcode;
-        ConnectFrame* frame = new ConnectFrame(username, passcode);
-        return *frame;
+void StompProtocol::createDepartingFrame(string line) {
+    string frame;
+    vector<string> args = split(line);
+    string command = args[0];
+    if(loggedInUser == "" && command != "login") {
+        cout << "please login first" << endl;
+        return;
+    }
+    if (command == "login") {
+        frame = processConnect(args);
     }
     else if (command == "SEND") {
-        string destination;
-        string body;
-        iss >> destination;
-        getline(iss, body);
-        SendFrame* frame = new SendFrame(destination, body);
-        return *frame;
+        frame = processSend(args);
     }
     else if (command == "SUBSCRIBE") {
-        string destination;
-        string id;
-        iss >> destination >> id;
-        SubscribeFrame* frame = new SubscribeFrame(destination, id);
-        return *frame;
+        frame = processSubscribe(args);
     }
     else if (command == "UNSUBSCRIBE") {
-        string id;
-        iss >> id;
-        UnsubscribeFrame* frame = new UnsubscribeFrame(id);
-        return *frame;
+        frame = processUnsubscribe(args);
     }
     else if (command == "DISCONNECT") {
-        string receipt;
-        iss >> receipt;
-        DisconnectFrame* frame = new DisconnectFrame(receipt);
-        return *frame;
+        frame = processDisconnect(args);
     }
     else {
         throw "Invalid command";
     }
+        departingMessages->push(frame);
 }
+
+string StompProtocol:: processConnect(vector<string> args) {
+    string username = args[2];
+    string passcode = args[3];
+    if(loggedInUser == "") {
+        //start from here
+    }
+    ConnectFrame frame(username, passcode);
+    summaries.insert({username, {}});
+    // remember to reset the user to "" if an error is 
+    return frame.toString();
+}
+
+string StompProtocol:: processSend(vector<string> args) {
+    string destination = args[1];
+    string body = args[2];
+    SendFrame frame(destination, body);
+    // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
+    return frame.toString();
+}
+
+string StompProtocol:: processSubscribe(vector<string> args) {
+    string destination = args[1];
+    string id = args[2];
+    SubscribeFrame frame(destination, id);
+    users.insert({loggedInUser, id});
+    return frame.toString();
+}
+
+string StompProtocol:: processUnsubscribe(vector<string> args) {
+    string id = args[1];
+    UnsubscribeFrame frame(id);
+    return frame.toString();
+}
+
+string StompProtocol:: processDisconnect(vector<string> args) {
+    string receipt = args[1];
+    DisconnectFrame frame(receipt);
+    return frame.toString();
+}
+
+
+void StompProtocol:: processIncomingFrame(string message) {
+    vector<string> args = split(message);
+    string command = args[0];
+    string frame;
+    if (command == "CONNECTED") {
+        cout << "Login successful" << endl;
+
+        frame = processConnected(args);
+    }
+    else if (command == "MESSAGE") {
+        frame = processMessage(args);
+    }
+    else if (command == "RECEIPT") {
+        frame = processReceipt(args);
+    }
+    else if (command == "ERROR") {
+        frame = processError(args);
+    }
+    else {
+        throw "Invalid command";
+    }
+    cout << frame << endl;
+}
+
+string StompProtocol:: processConnected(vector<string> args) {
+    string version = args[1];
+    ConnectedFrame frame(version);
+    return frame.toString();
+}
+
+string StompProtocol:: processMessage(vector<string> args) {
+    string destination = args[1];
+    string body = args[2];
+    string user = args[3];
+    MessageFrame frame(destination, body);
+    addtoSummary(user, frame);
+    return frame.toString();
+}
+
+string StompProtocol:: processReceipt(vector<string> args) {
+    string receipt = args[1];
+    ReceiptFrame frame(receipt);
+    return frame.toString();
+}
+
+string StompProtocol:: processError(vector<string> args) {
+    string message = args[1];
+    ErrorFrame frame(message);
+    return frame.toString();
+}
+
+
+
+vector<string> StompProtocol :: split(const string& line) {
+    istringstream iss(line);
+    vector<string> words;
+    string word;
+    while (iss >> word) {
+        words.push_back(word);
+    }
+    return words;
+}
+
 

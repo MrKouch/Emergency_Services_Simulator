@@ -1,9 +1,11 @@
 #include <queue>
 #include <string>
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include "../include/Frame.h"
 using namespace std;
 
-queue<string>* departingMessages = new queue<string>();
 
 void KeyboardThread() {
 	while(1) {
@@ -19,6 +21,5 @@ void KeyboardThread() {
 int main(int argc, char *argv[]) {
 
 	KeyboardThread();
-
 	return 0;
 }

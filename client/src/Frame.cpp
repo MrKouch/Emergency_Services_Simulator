@@ -15,6 +15,15 @@ std::string Frame::getBody() {
     return body_;
 }
 
+std::string Frame::toString() {
+    std::string frame = command_ + "\n";
+    for (auto const& header : headers_) {
+        frame += header.first + ":" + header.second + "\n";
+    }
+    frame += "\n" + body_ + "\0";
+    return frame;
+}
+
 class ConnectFrame : public Frame {
     public:
         ConnectFrame(string username, string passcode) : Frame("CONNECT",
@@ -43,6 +52,28 @@ class DisconnectFrame : public Frame {
     public:
         DisconnectFrame(string receipt) : Frame("DISCONNECT", {{"receipt:", receipt}}, "") {}
 };
+
+class ConnectedFrame : public Frame {
+    public:
+        ConnectedFrame(string version) : Frame("CONNECTED", {{"version:", version}}, "") {}
+};
+
+class MessageFrame : public Frame {
+    public:
+        MessageFrame(string destination, string body) : Frame("MESSAGE", {{"destination", destination}}, body) {}
+};
+
+class ReceiptFrame : public Frame {
+    public:
+        ReceiptFrame(string receipt) : Frame("RECEIPT", {{"receipt-id:", receipt}}, "") {}
+};
+
+class ErrorFrame : public Frame {
+    public:
+        ErrorFrame(string message) : Frame("ERROR", {{"message:", message}}, "") {}
+};
+
+
 
 
 

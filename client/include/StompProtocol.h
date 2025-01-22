@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../include/ConnectionHandler.h"
-#include <queue>
 #include "../include/Frame.h"
+#include <queue>
+#include <unordered_map>
+
 
 using namespace std;
 
@@ -10,15 +12,29 @@ using namespace std;
 class StompProtocol
 {
 private:
-    ConnectionHandler* connectionHandler;
-    queue<Frame>* departingMessages;
-    queue<Frame>* arrivingMessages;
+    queue<string>* departingMessages = new queue<string>();
+    unordered_map<string, string> users;    // username, ID
+    unordered_map<string, vector<Frame>> summaries; // username, reported events
+    string loggedInUser;
 public:
-    Frame& createFrame(string line);
-    // void messageClassifier(string line);
-    // void connect(const string& username, string& passcode);
-    // void send(string destination, string body);
-    // void subscribe(string destination, string id);
-    // void unsubscribe(string id);
-    // void disconnect(string receipt);
+    StompProtocol(ConnectionHandler* connectionHandler);
+    void createDepartingFrame(string line);
+    string processConnect(vector<string> args);
+    string processSend(vector<string> args);
+    string processSubscribe(vector<string> args);
+    string processUnsubscribe(vector<string> args);
+    string processDisconnect(vector<string> args);
+
+
+
+    void processIncomingFrame(string message);
+    string processConnected(vector<string> args);
+    string processMessage(vector<string> args);
+    string processReceipt(vector<string> args);
+    string processError(vector<string> args);
+    string addtoSummary(string user, Frame event);  
+
+
+    
+    vector<string> split(const string& text);
 };

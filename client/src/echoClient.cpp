@@ -5,7 +5,10 @@
 * This code assumes that the server replies the exact text the client sent it (as opposed to the practical session example)
 */
 int main (int argc, char *argv[]) {
+<<<<<<< HEAD
+=======
     // std::cout << "abc" << std::endl;
+>>>>>>> 7ed7aed7027cde8581e3082f826ad3f4e786876c
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " host port" << std::endl << std::endl;
         return -1;

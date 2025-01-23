@@ -12,12 +12,15 @@ using namespace std;
 class StompProtocol
 {
 private:
-    queue<string>* departingMessages = new queue<string>();
-    unordered_map<string, string> users;    // username, ID
+    ConnectionHandler* connectionHandler;
+    unordered_map<string, unordered_map<string, int>> users; // username, IDs per channel
+    unordered_map<string, int> channelsIDs; // channelName, ID
     unordered_map<string, vector<Frame>> summaries; // username, reported events
+    bool isConnected;
     string loggedInUser;
+    
 public:
-    StompProtocol(ConnectionHandler* connectionHandler);
+    StompProtocol();
     void createDepartingFrame(string line);
     string processConnect(vector<string> args);
     string processSend(vector<string> args);
@@ -36,5 +39,9 @@ public:
 
 
     
-    vector<string> split(const string& text);
+    vector<string> splitLine(const string& line);
+    vector<string> splitMessagetoLines(const string& message);
+
+
+    int generateID(string channelName);
 };

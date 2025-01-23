@@ -1,4 +1,5 @@
 #include "../include/Frame.h"
+#include "../include/StompProtocol.h"
 
 
 Frame::Frame(std::string command, std::map<std::string, std::string> headers, std::string body) : command_(command), headers_(headers), body_(body) {}
@@ -33,15 +34,16 @@ class ConnectFrame : public Frame {
             {"passcode:", passcode}}, "") {}
 };
 
+class SubscribeFrame : public Frame {
+    public:
+        SubscribeFrame(string destination, string channelName) : Frame("SUBSCRIBE", {{"destination", destination}, {"id:", StompProtocol :: protocol}}, "") {}
+};
+
 class SendFrame : public Frame {
     public:
         SendFrame(string destination, string body) : Frame("SEND", {{"destination", destination}}, body) {}
 };
 
-class SubscribeFrame : public Frame {
-    public:
-        SubscribeFrame(string destination, string id) : Frame("SUBSCRIBE", {{"destination", destination}, {"id:", id}}, "") {}
-};
 
 class UnsubscribeFrame : public Frame {
     public:

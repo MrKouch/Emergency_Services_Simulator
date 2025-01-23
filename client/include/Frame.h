@@ -33,7 +33,7 @@ class SendFrame : public Frame {
 
 class SubscribeFrame : public Frame {
     public:
-        SubscribeFrame(string destination, string id);
+        SubscribeFrame(string destination, string channelName);
 };
 
 class UnsubscribeFrame : public Frame {

@@ -15,10 +15,15 @@
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/newsfeed/PublishNewsCommand.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/NonBlockingConnectionHandler.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/echo/EchoProtocol.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/stomp/StompMessagingProtocolImpl.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/User.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/stomp/StompEncDec.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/rci/RCIClient.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/rci/Command.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/Reactor.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/Client.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/echo/EchoClient.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/stomp/ConnectionsImpl.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/api/MessageEncoderDecoder.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/rci/ObjectEncoderDecoder.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/api/MessagingProtocol.java

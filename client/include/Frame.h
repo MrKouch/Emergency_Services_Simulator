@@ -17,7 +17,7 @@ class Frame {
         string& getCommand();
         map<string, string> getHeaders();
         string& getBody();
-        string& toString();
+        string toString();
 };
 
 class ConnectFrame : public Frame {

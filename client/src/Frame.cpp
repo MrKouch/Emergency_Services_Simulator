@@ -17,7 +17,7 @@ string& Frame::getBody() {
     return body_;
 }
 
-string& Frame::toString() {
+string Frame::toString() {
     string frame = command_ + "\n";
     for (auto const& header : headers_) {
         frame += header.first + ":" + header.second + "\n";

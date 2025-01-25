@@ -12,36 +12,46 @@ using namespace std;
 class StompProtocol
 {
 private:
-    ConnectionHandler* connectionHandler;
-    unordered_map<string, unordered_map<string, int>> users; // username, IDs per channel
+    std::shared_ptr<ConnectionHandler> connectionHandler; // Use shared_ptr
+    unordered_map<string, unordered_map<string, int>> existingUsers; // username, IDs per channel
     unordered_map<string, int> channelsIDs; // channelName, ID
     unordered_map<string, vector<Frame>> summaries; // username, reported events
+    int receiptID;
+    thread arrivingMessagesThread;
     bool isConnected;
-    string loggedInUser;
+    pair<string, int> loggedInUser; // username, receiptID
     
 public:
     StompProtocol();
-    void createDepartingFrame(string line);
+    ~StompProtocol();
+
+    string& getLoggedInUser();
+    int getReceiptID();
+
+    void createDepartingFrame(string& line);
     string processConnect(vector<string> args);
     string processSend(vector<string> args);
     string processSubscribe(vector<string> args);
     string processUnsubscribe(vector<string> args);
-    string processDisconnect(vector<string> args);
+    string processDisconnect();
+
+    void runArivingMessagesThread(std::shared_ptr<ConnectionHandler> connectionHandler);
 
 
 
-    void processIncomingFrame(string message);
-    string processConnected(vector<string> args);
+    string processIncomingFrame(string& message);
+    string processConnected();
     string processMessage(vector<string> args);
     string processReceipt(vector<string> args);
     string processError(vector<string> args);
+    void openSummary(string& user);
     string addtoSummary(string user, Frame event);  
 
 
     
     vector<string> splitLine(const string& line);
-    vector<string> splitMessagetoLines(const string& message);
+    vector<string> splitFrameToLines(const string& frame);
+    void assignAndIncrementReceiptID();
 
 
-    int generateID(string channelName);
 };

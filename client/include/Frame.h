@@ -14,10 +14,10 @@ class Frame {
     
     public:
         Frame(string command, map<string, string> headers, string body);
-        string getCommand();
+        string& getCommand();
         map<string, string> getHeaders();
-        string getBody();
-        string toString();
+        string& getBody();
+        string& toString();
 };
 
 class ConnectFrame : public Frame {
@@ -33,7 +33,7 @@ class SendFrame : public Frame {
 
 class SubscribeFrame : public Frame {
     public:
-        SubscribeFrame(string destination, string channelName);
+        SubscribeFrame(string channelName);
 };
 
 class UnsubscribeFrame : public Frame {
@@ -43,6 +43,6 @@ class UnsubscribeFrame : public Frame {
 
 class DisconnectFrame : public Frame {
     public:
-        DisconnectFrame(string receipt);
+        DisconnectFrame(int receipt);
 };
 

@@ -1,11 +1,13 @@
-#include "../include/Frame.h"
-#include "../include/StompProtocol.h"
+#include "Frame.h"
+#include <string>
+#include <map>
 
 using namespace std;
 
-Frame::Frame(string command, map<string, string> headers, string body) : command_(command), headers_(headers), body_(body) {}
+Frame::Frame(string command, map<string, string> headers, string body)
+    : command_(command), headers_(headers), body_(body) {}
 
-string& Frame::getCommand() {
+string Frame::getCommand() {
     return command_;
 }
 
@@ -26,29 +28,24 @@ string Frame::toString() {
     return frame;
 }
 
-
-ConnectFrame:: ConnectFrame(string username, string passcode) : Frame("CONNECT",
+ConnectFrame::ConnectFrame(const string& username, const string& passcode)
+    : Frame("CONNECT",
             {{"accept-version", "1.2"},
-            {"host", "stomp.cs.bgu.ac.il"},
-            {"login", username},
-            {"passcode", passcode}}, "") {}
+             {"host", "stomp.cs.bgu.ac.il"},
+             {"login", username},
+             {"passcode", passcode}}, "") {}
 
+SubscribeFrame::SubscribeFrame(const string& channelName)
+    : Frame("SUBSCRIBE", {{"destination", channelName}}, "") {}
 
+SendFrame::SendFrame(const string& destination, const string& body)
+    : Frame("SEND", {{"destination", destination}}, body) {}
 
-SubscribeFrame:: SubscribeFrame(string channelName) : Frame("SUBSCRIBE", {{"destination", channelName}/*, {"id:", use the global variable}*/}, "") {}
+UnsubscribeFrame::UnsubscribeFrame(const string& id)
+    : Frame("UNSUBSCRIBE", {{"id", id}}, "") {}
 
-
-
-SendFrame:: SendFrame(string destination, string body) : Frame("SEND", {{"destination", destination}}, body) {}
-
-
-
-
-UnsubscribeFrame:: UnsubscribeFrame(string id) : Frame("UNSUBSCRIBE", {{"id:", id}}, "") {}
-
-
-
-DisconnectFrame:: DisconnectFrame(int receipt) : Frame("DISCONNECT", {{"receipt:", to_string(receipt)}}, "") {}
+DisconnectFrame::DisconnectFrame(int receipt)
+    : Frame("DISCONNECT", {{"receipt", to_string(receipt)}}, "") {}
 
 
 

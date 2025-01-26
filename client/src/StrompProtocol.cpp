@@ -58,9 +58,9 @@ void StompProtocol::createDepartingFrame(string& line) {
             cout << "The client is already logged in, log out before trying gain" << endl;
             return;
         }
-        // else if (command == "logout") {
-        //     frame = processDisconnect(args);
-        // }
+        else if (command == "logout") {
+            frame = processDisconnect();
+        }
         // else if (command == "join") {
         //     frame = processSubscribe(args);
         // }
@@ -70,11 +70,12 @@ void StompProtocol::createDepartingFrame(string& line) {
         // else if (command == "UNSUBSCRIBE") {
         //     frame = processUnsubscribe(args);
         // }
-        // else {
-        //     throw "Invalid command";
-        // }
+        else {
+            cout << "[DEBUG] invlid command" << endl;
+            return;
+        }
         if(connectionHandler == nullptr) {
-        //    throw "Connection handler is null - logical problem - debug!";
+            throw runtime_error("Connection handler is null - logical problem - debug!");
             return;
         }
     }
@@ -94,7 +95,7 @@ string StompProtocol:: processConnect(vector<string> args) {
         return frame.toString();
     }
     else {
-        throw "Connection failed";
+        throw runtime_error("Connection failed");
     }
     
 }
@@ -146,12 +147,12 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
 			break;
 		}
         answer.resize(answer.length() - 1);
-        string incomingFrame = processIncomingFrame(answer);
-        if(incomingFrame == "logout and close the connection and the thread") {
+        string incomingMessage = processIncomingFrame(answer);
+        if(incomingMessage == "logout and close the connection and the thread") {
             break;
         }
         else {
-            cout << incomingFrame << endl;
+            cout << incomingMessage << endl;
         }
 	}
 }
@@ -164,23 +165,22 @@ string StompProtocol:: processIncomingFrame(string& frame) {
     vector<string> args = splitFrameToLines(frame);
     string command = args[0];
     if (command == "CONNECTED") {
-        cout << "Login successful" << endl;
         isConnected = true;
         assignAndIncrementReceiptID();
         openSummary(loggedInUser.first);
-        processConnected();
+        output = processConnected();
     }
     // else if (command == "MESSAGE") {
     //     output = processMessage(args);
     // }
-    // else if (command == "RECEIPT") {
-    //     output = processReceipt(args);
-    // }
+    else if (command == "RECEIPT") {
+        output = processReceipt(args);
+    }
     // else if (command == "ERROR") {
     //     output = processError(args);
     // }
     else {
-        throw "got an invalid frame from server!";
+        throw runtime_error("got an invalid frame from server!");
     }
     return output;
 }
@@ -203,19 +203,24 @@ string StompProtocol:: processConnected() {
 // }
 
 string StompProtocol:: processReceipt(vector<string> args) {
-    string receipt = args[1];
-    if(stoi(receipt) == loggedInUser.second) {
-        isConnected = false;
-        loggedInUser.first = "";
-        loggedInUser.second = -1;
-        connectionHandler->close();
-        cout << "[DEBUG] Logout successful" << endl;
-        return "logout and close the connection and the thread";
+    vector<string> header = splitLine(args[1]);
+    string receipt = header[1];
+    try {
+        if (receipt.empty() || !std::all_of(receipt.begin(), receipt.end(), ::isdigit)) {
+            throw std::invalid_argument("Invalid receipt ID");
+        }
+        if (std::stoi(receipt) == loggedInUser.second) {
+            isConnected = false;
+            loggedInUser.first = "";
+            loggedInUser.second = -1;
+            connectionHandler->close();
+            std::cout << "[DEBUG] Logout successful" << std::endl;
+            return "logout and close the connection and the thread";
+        }
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
+        return "Invalid receipt ID";
     }
-    else {
-        
-    }
-
     return receipt;
 }
 
@@ -269,7 +274,7 @@ void StompProtocol:: openSummary(string& user) {
 
 void StompProtocol:: assignAndIncrementReceiptID() {
     if(existingUsers.find(loggedInUser.first) == existingUsers.end()) {
-        existingUsers.insert({loggedInUser.first, {}}); // username, IDs per channel
+        loggedInUser.second = receiptID;
         receiptID++;
     }
 }

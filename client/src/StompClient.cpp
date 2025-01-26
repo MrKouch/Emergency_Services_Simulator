@@ -14,7 +14,8 @@ string HOST;
 short PORT;
 
 int main(int argc, char *argv[]) {
-	if (argc < 3) {
+	try {
+		if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " host port" << std::endl << std::endl;
         return -1;
     }
@@ -27,6 +28,11 @@ int main(int argc, char *argv[]) {
 		cout << "[DEBUG]: Please enter a command" << endl;
 		getline(cin, inputLine);
 		protocol->createDepartingFrame(inputLine);
+	}
+	}
+	catch (exception& e) {
+		cout << "Exception: " << e.what() << endl;
+		return 1;
 	}
 	return 0;
 }

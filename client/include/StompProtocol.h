@@ -14,7 +14,7 @@ class StompProtocol
 private:
     std::shared_ptr<ConnectionHandler> connectionHandler; // Use shared_ptr
     unordered_map<string, int> usersIDs; // user, ID
-    unordered_map<string, vector<Frame>> reportedEvents; // channel, reported events
+    unordered_map<string, vector<Event>> reportedEvents; // channel, reported events
     unordered_map<int, string> IDtoChannel; // ID, channel
     unordered_map<string, int> channelToID; // channel, ID
     int nextID;
@@ -30,7 +30,7 @@ public:
 
     void createDepartingFrame(string& line);
     string processConnect(vector<string> args);
-    string processSend(vector<string> args);
+    vector<string> processSend(vector<string> args);
     string processSubscribe(vector<string> args);
     string processUnsubscribe(vector<string> args);
     string processDisconnect();
@@ -48,7 +48,6 @@ public:
     bool joinChannel(string channel);
     
     
-    string addtoSummary(string user, Frame event);
 
     void disconnect(); 
 

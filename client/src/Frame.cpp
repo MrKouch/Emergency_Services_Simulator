@@ -38,8 +38,18 @@ ConnectFrame::ConnectFrame(const string& username, const string& passcode)
 SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receiptID)
     : Frame("SUBSCRIBE", {{"destination", channelName}, {"id", to_string(subID)}, {"receipt", to_string(receiptID)}}, "") {}
 
-SendFrame::SendFrame(const string& destination, const string& body)
-    : Frame("SEND", {{"destination", destination}}, body) {}
+
+
+SendFrame::SendFrame(const string& destination, Event& event)
+    : Frame("SEND", {{"destination", destination}}, "") {
+        body_ = "event_name:" + event.get_name() + "\n" +
+                "city:" + event.get_city() + "\n" +
+                "date_time:" + to_string(event.get_date_time()) + "\n" +
+                "description:" + event.get_description() + "\n" +
+                "general_information:" + "\n" +
+                "active:" + event.get_general_information().at("active") + "\n" +
+                "forces_arrival_at_scene:" + event.get_general_information().at("forces arrival at scene:") + "\n";
+    }
 
 UnsubscribeFrame::UnsubscribeFrame(const string& subID, int receiptID)
     : Frame("UNSUBSCRIBE", {{"id", subID}, {"receipt", to_string(receiptID)}}, "") {}

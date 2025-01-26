@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <event.h>
 
 using namespace std;
 
@@ -26,7 +27,7 @@ public:
 
 class SendFrame : public Frame {
 public:
-    SendFrame(const string& destination, const string& body); // Use const references
+    SendFrame(const string& destination, Event& event); // Use const references
 };
 
 class SubscribeFrame : public Frame {

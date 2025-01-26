@@ -1,6 +1,7 @@
 #include "../include/StompProtocol.h"
 #include "../include/Frame.h"
 #include "../include/ConnectionHandler.h"
+#include "../include/event.h"
 #include <vector>
 #include <thread>
 
@@ -74,9 +75,12 @@ void StompProtocol::createDepartingFrame(string& line) {
             }
             cout << "exited channel " << args[1] << endl;
         }
-        // else if (command == "SEND") {
-        //     frame = processSend(args);
-        // }
+        else if (command == "report") {
+            vector<string> sendMe = processSend(args);
+            for(string frame : sendMe) {
+                connectionHandler->sendMessage(frame);
+            }
+        }
         else {
             cout << "Illegal command, please try a different one" << endl;
             return;
@@ -86,7 +90,9 @@ void StompProtocol::createDepartingFrame(string& line) {
             return;
         }
     }
-        connectionHandler->sendMessage(frame);
+        if(command != "report") {
+            connectionHandler->sendMessage(frame);
+        }
 }
 
 string StompProtocol:: processConnect(vector<string> args) {
@@ -148,18 +154,26 @@ string StompProtocol:: processUnsubscribe(vector<string> args) {
     }
     else {
         string subID = to_string(channelToID[channel]);
+        int eraseMEID = channelToID[channel];
+        channelToID.erase(channel);
+        IDtoChannel.erase(eraseMEID);
         exitChannelReceiptID = generateNextID();
         UnsubscribeFrame frame(subID, exitChannelReceiptID);
         return frame.toString();
     }
 }
 
-string StompProtocol:: processSend(vector<string> args) {
+vector<string> StompProtocol:: processSend(vector<string> args) {
     string destination = args[1];
-    string body = args[2];
-    SendFrame frame(destination, body);
+    string file = args[2];
+    names_and_events events = parseEventsFile(file);
+    vector<string> reportedEvents;
+    for(Event event : events.events) {
+        SendFrame frame(destination, event);
+        reportedEvents.push_back(frame.toString());
+    }
     // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
-    return frame.toString();
+    return reportedEvents;
 }
 
 
@@ -193,11 +207,11 @@ string StompProtocol:: processIncomingFrame(string& frame) {
         isConnected = true;
         output = processConnected();
     }
-    // else if (command == "MESSAGE") {
-    //     output = processMessage(args);
-    // }
     else if (command == "RECEIPT") {
         output = processReceipt(args);
+    }
+    else if (command == "MESSAGE") {
+        output = processMessage(args);
     }
     // else if (command == "ERROR") {
     //     output = processError(args);
@@ -214,14 +228,6 @@ string StompProtocol:: processConnected() {
         return "Login successful";
 }
 
-// string StompProtocol:: processMessage(vector<string> args) {
-//     string destination = args[1];
-//     string body = args[2];
-//     string user = args[3];
-//     MessageFrame frame(destination, body);
-//     addtoSummary(user, frame);
-//     return frame.toString();
-// }
 
 string StompProtocol:: processReceipt(vector<string> args) {
     vector<string> header = splitLine(args[1]);
@@ -242,7 +248,7 @@ string StompProtocol:: processReceipt(vector<string> args) {
         }
         // Exit a channel
         else if (receiptID == exitChannelReceiptID) {
-            cout << "[DEBUG] Exiting channel" << endl;            
+            cout << "[DEBUG] Exiting channel" << endl;
         }
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
@@ -251,6 +257,14 @@ string StompProtocol:: processReceipt(vector<string> args) {
     return receipt;
 }
 
+string StompProtocol:: processMessage(vector<string> args) {
+    string sub = args[1];
+    string msgID = args[2];
+    string destination = args[3];
+    Event event(args[4]);
+    string channel = event.get_channel_name();
+    reportedEvents[channel].push_back(event);
+}
 
 
 

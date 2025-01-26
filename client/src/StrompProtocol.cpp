@@ -14,7 +14,7 @@ using namespace std;
 extern string HOST;
 extern short PORT;
 
-StompProtocol::StompProtocol() : isConnected(false), loggedInUser("", -1), receiptID(0) ,connectionHandler(nullptr), existingUsers(), summaries(), channelsIDs() {}
+StompProtocol::StompProtocol() : isConnected(false), nextID(0), logOutID(-1) ,connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {}
 StompProtocol::~StompProtocol() {
     if(connectionHandler != nullptr) {
         connectionHandler->close();
@@ -22,14 +22,6 @@ StompProtocol::~StompProtocol() {
     if(arrivingMessagesThread.joinable()) {
         arrivingMessagesThread.join();
     }
-}
-
-string& StompProtocol:: getLoggedInUser() {
-    return loggedInUser.first;
-}
-
-int StompProtocol:: getReceiptID() {
-    return loggedInUser.second;
 }
 
 
@@ -61,9 +53,9 @@ void StompProtocol::createDepartingFrame(string& line) {
         else if (command == "logout") {
             frame = processDisconnect();
         }
-        // else if (command == "join") {
-        //     frame = processSubscribe(args);
-        // }
+        else if (command == "join") {
+            frame = processSubscribe(args);
+        }
         // else if (command == "SEND") {
         //     frame = processSend(args);
         // }
@@ -71,7 +63,7 @@ void StompProtocol::createDepartingFrame(string& line) {
         //     frame = processUnsubscribe(args);
         // }
         else {
-            cout << "[DEBUG] invlid command" << endl;
+            cout << "Illegal command, please try a different one" << endl;
             return;
         }
         if(connectionHandler == nullptr) {
@@ -83,6 +75,9 @@ void StompProtocol::createDepartingFrame(string& line) {
 }
 
 string StompProtocol:: processConnect(vector<string> args) {
+    if(arrivingMessagesThread.joinable()) {
+        arrivingMessagesThread.join(); // wait for the thread to finish logging out the previous user
+    }
     connectionHandler = std::make_shared<ConnectionHandler>(args[1], std::stoi(args[2]));
     if(connectionHandler->connect()) {
         arrivingMessagesThread = thread(&StompProtocol::runArivingMessagesThread, this, connectionHandler);
@@ -91,7 +86,6 @@ string StompProtocol:: processConnect(vector<string> args) {
         string passcode = args[4];
         ConnectFrame frame(username, passcode);
         isConnected = true;
-        loggedInUser.first = username;
         return frame.toString();
     }
     else {
@@ -101,25 +95,21 @@ string StompProtocol:: processConnect(vector<string> args) {
 }
 
 string StompProtocol:: processDisconnect() {
-    DisconnectFrame frame(loggedInUser.second);
+    logOutID = generateNextID();
+    DisconnectFrame frame(logOutID);
     return frame.toString();
 }
 
-// string StompProtocol:: processSubscribe(vector<string> args) {
-//     string destination = args[1];
-//     string channelName = args[2];
-//     if(channelsIDs.find(channelName) == channelsIDs.end()) {
-        
-//     }
-//     else {
-//         int id = generateID(channelName);
-//         channelsIDs[channelName] = id;
-        
-//     }
-        
-//     SubscribeFrame frame(destination, channelName);
-//     return frame.toString();
-// }
+string StompProtocol:: processSubscribe(vector<string> args) {
+    string channelName = args[1];
+    if(channelToID.find(channelName) == channelToID.end()) {
+        int subID = generateNextID();
+        channelToID[channelName] = subID;
+        IDtoChannel[subID] = channelName;
+    }
+    SubscribeFrame frame(channelName, channelToID[channelName]);
+    return frame.toString();
+}
 
 string StompProtocol:: processSend(vector<string> args) {
     string destination = args[1];
@@ -148,7 +138,7 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
 		}
         answer.resize(answer.length() - 1);
         string incomingMessage = processIncomingFrame(answer);
-        if(incomingMessage == "logout and close the connection and the thread") {
+        if(incomingMessage == "close the thread") {
             break;
         }
         else {
@@ -166,8 +156,6 @@ string StompProtocol:: processIncomingFrame(string& frame) {
     string command = args[0];
     if (command == "CONNECTED") {
         isConnected = true;
-        assignAndIncrementReceiptID();
-        openSummary(loggedInUser.first);
         output = processConnected();
     }
     // else if (command == "MESSAGE") {
@@ -187,9 +175,6 @@ string StompProtocol:: processIncomingFrame(string& frame) {
 
 string StompProtocol:: processConnected() {
         isConnected = true;
-        assignAndIncrementReceiptID();
-        existingUsers.insert({loggedInUser.first, {}});
-        openSummary(loggedInUser.first);
         return "Login successful";
 }
 
@@ -209,19 +194,39 @@ string StompProtocol:: processReceipt(vector<string> args) {
         if (receipt.empty() || !std::all_of(receipt.begin(), receipt.end(), ::isdigit)) {
             throw std::invalid_argument("Invalid receipt ID");
         }
-        if (std::stoi(receipt) == loggedInUser.second) {
-            isConnected = false;
-            loggedInUser.first = "";
-            loggedInUser.second = -1;
-            connectionHandler->close();
-            std::cout << "[DEBUG] Logout successful" << std::endl;
-            return "logout and close the connection and the thread";
+        int receiptID = std::stoi(receipt);
+        if (receiptID == logOutID) {
+            disconnect();
+            std::cout << "Logged out" << std::endl;
+            return "close the thread";
+        }
+        // Join a channel
+        else if (IDtoChannel.find(receiptID) != IDtoChannel.end()) {
+            string channelToJoin = IDtoChannel.find(receiptID)->second;
+            joinChannel(channelToJoin);
+            return "Joined channel " + channelToJoin;
         }
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
         return "Invalid receipt ID";
     }
     return receipt;
+}
+
+
+//if the channel is not in the reportedEvents map, add it with an empty vector
+void StompProtocol:: joinChannel(string channel) {
+    if(reportedEvents.find(channel) == reportedEvents.end()) {
+        reportedEvents[channel] = {};
+    }
+}
+
+void StompProtocol :: disconnect() {
+    if (connectionHandler != nullptr) {
+        connectionHandler->close();
+    }
+    isConnected = false;
+    logOutID = -1;
 }
 
 // string StompProtocol:: processError(vector<string> args) {
@@ -266,17 +271,11 @@ vector<string> StompProtocol :: splitFrameToLines(const string& frame) {
     return args;
 }
 
-void StompProtocol:: openSummary(string& user) {
-    if(summaries.find(user) == summaries.end()) {
-        summaries[user] = {};
-    }
-}
 
-void StompProtocol:: assignAndIncrementReceiptID() {
-    if(existingUsers.find(loggedInUser.first) == existingUsers.end()) {
-        loggedInUser.second = receiptID;
-        receiptID++;
-    }
+int StompProtocol:: generateNextID() {
+    int output = nextID;
+    nextID++;
+    return output;
 }
 
 

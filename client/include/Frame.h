@@ -31,7 +31,7 @@ public:
 
 class SubscribeFrame : public Frame {
 public:
-    SubscribeFrame(const string& channelName); // Use const reference
+    SubscribeFrame(const string& channelName, int id); // Use const reference
 };
 
 class UnsubscribeFrame : public Frame {

@@ -35,8 +35,8 @@ ConnectFrame::ConnectFrame(const string& username, const string& passcode)
              {"login", username},
              {"passcode", passcode}}, "") {}
 
-SubscribeFrame::SubscribeFrame(const string& channelName)
-    : Frame("SUBSCRIBE", {{"destination", channelName}}, "") {}
+SubscribeFrame::SubscribeFrame(const string& channelName, int id)
+    : Frame("SUBSCRIBE", {{"destination", channelName}, {"id", to_string(id)}}, "") {}
 
 SendFrame::SendFrame(const string& destination, const string& body)
     : Frame("SEND", {{"destination", destination}}, body) {}

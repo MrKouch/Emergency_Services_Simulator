@@ -20,13 +20,13 @@ private:
     int nextID;
     thread arrivingMessagesThread;
     bool isConnected;
-    int logOutID;
+    int logOutReceiptID;
+    int joinChannelReceiptID;
+    int exitChannelReceiptID;
 
 public:
     StompProtocol();
     ~StompProtocol();
-
-    int getReceiptID();
 
     void createDepartingFrame(string& line);
     string processConnect(vector<string> args);
@@ -45,7 +45,7 @@ public:
     string processReceipt(vector<string> args);
     string processError(vector<string> args);
 
-    void joinChannel(string channel);
+    bool joinChannel(string channel);
     
     
     string addtoSummary(string user, Frame event);

@@ -31,12 +31,12 @@ public:
 
 class SubscribeFrame : public Frame {
 public:
-    SubscribeFrame(const string& channelName, int id); // Use const reference
+    SubscribeFrame(const string& channelName, int subID, int receiptID); // Use const reference
 };
 
 class UnsubscribeFrame : public Frame {
 public:
-    UnsubscribeFrame(const string& id); // Use const reference
+    UnsubscribeFrame(const string& subID, int receiptID); // Use const reference
 };
 
 class DisconnectFrame : public Frame {

@@ -14,7 +14,11 @@ using namespace std;
 extern string HOST;
 extern short PORT;
 
-StompProtocol::StompProtocol() : isConnected(false), nextID(0), logOutID(-1) ,connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {}
+StompProtocol::StompProtocol() : 
+    isConnected(false), nextID(0), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1),
+    connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {
+    cout << "[DEBUG] StompProtocol created" << endl;
+}
 StompProtocol::~StompProtocol() {
     if(connectionHandler != nullptr) {
         connectionHandler->close();
@@ -22,6 +26,7 @@ StompProtocol::~StompProtocol() {
     if(arrivingMessagesThread.joinable()) {
         arrivingMessagesThread.join();
     }
+    cout << "[DEBUG] StompProtocol destroyed" << endl;
 }
 
 
@@ -29,6 +34,7 @@ StompProtocol::~StompProtocol() {
 // Client Frames Handling
 
 void StompProtocol::createDepartingFrame(string& line) {
+    std::cout << "[DEBUG]: createDepartingFrame called with line: " << line << std::endl;
     string frame;
     vector<string> args = splitLine(line);
     string command = args[0];
@@ -55,12 +61,21 @@ void StompProtocol::createDepartingFrame(string& line) {
         }
         else if (command == "join") {
             frame = processSubscribe(args);
+            if(frame == "Already subscribed to this channel") {
+                return;
+            }
+            cout << "joined channel " << args[1] << endl;
+        }
+        else if (command == "exit") {
+            frame = processUnsubscribe(args);
+            if (frame == "you are not subscribed to channel" + args[1]) {
+                cout << "you are not subscribed to channel " << args[1] << endl;
+                return;
+            }
+            cout << "exited channel " << args[1] << endl;
         }
         // else if (command == "SEND") {
         //     frame = processSend(args);
-        // }
-        // else if (command == "UNSUBSCRIBE") {
-        //     frame = processUnsubscribe(args);
         // }
         else {
             cout << "Illegal command, please try a different one" << endl;
@@ -95,20 +110,48 @@ string StompProtocol:: processConnect(vector<string> args) {
 }
 
 string StompProtocol:: processDisconnect() {
-    logOutID = generateNextID();
-    DisconnectFrame frame(logOutID);
+    logOutReceiptID = generateNextID();
+    DisconnectFrame frame(logOutReceiptID);
     return frame.toString();
 }
 
 string StompProtocol:: processSubscribe(vector<string> args) {
-    string channelName = args[1];
-    if(channelToID.find(channelName) == channelToID.end()) {
-        int subID = generateNextID();
-        channelToID[channelName] = subID;
-        IDtoChannel[subID] = channelName;
+    string channel = args[1];
+    if(joinChannel(channel)) {
+        joinChannelReceiptID = generateNextID();
+        SubscribeFrame frame(channel, channelToID[channel], joinChannelReceiptID);
+        return frame.toString();
     }
-    SubscribeFrame frame(channelName, channelToID[channelName]);
-    return frame.toString();
+    else {
+        return "Already subscribed to this channel";
+    }
+}
+
+//if the channel is not in the reportedEvents map, add it with an empty vector
+bool StompProtocol:: joinChannel(string channel) {
+    if(reportedEvents.find(channel) == reportedEvents.end()) {
+        reportedEvents[channel] = {};
+    }
+    if(channelToID.find(channel) == channelToID.end()) {
+        int subID = generateNextID();
+        channelToID[channel] = subID;
+        IDtoChannel[subID] = channel;
+        return true;
+    }
+    return false;
+}
+
+string StompProtocol:: processUnsubscribe(vector<string> args) {
+    string channel = args[1];
+    if(channelToID.find(channel) == channelToID.end()) {
+        return "you are not subscribed to channel" + channel;
+    }
+    else {
+        string subID = to_string(channelToID[channel]);
+        exitChannelReceiptID = generateNextID();
+        UnsubscribeFrame frame(subID, exitChannelReceiptID);
+        return frame.toString();
+    }
 }
 
 string StompProtocol:: processSend(vector<string> args) {
@@ -120,11 +163,6 @@ string StompProtocol:: processSend(vector<string> args) {
 }
 
 
-string StompProtocol:: processUnsubscribe(vector<string> args) {
-    string id = args[1];
-    UnsubscribeFrame frame(id);
-    return frame.toString();
-}
 
 
 
@@ -140,9 +178,6 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
         string incomingMessage = processIncomingFrame(answer);
         if(incomingMessage == "close the thread") {
             break;
-        }
-        else {
-            cout << incomingMessage << endl;
         }
 	}
 }
@@ -170,6 +205,7 @@ string StompProtocol:: processIncomingFrame(string& frame) {
     else {
         throw runtime_error("got an invalid frame from server!");
     }
+    cout << "[DEBUG] output: " << output << endl;
     return output;
 }
 
@@ -195,16 +231,18 @@ string StompProtocol:: processReceipt(vector<string> args) {
             throw std::invalid_argument("Invalid receipt ID");
         }
         int receiptID = std::stoi(receipt);
-        if (receiptID == logOutID) {
+        if (receiptID == logOutReceiptID) {
             disconnect();
             std::cout << "Logged out" << std::endl;
             return "close the thread";
         }
         // Join a channel
-        else if (IDtoChannel.find(receiptID) != IDtoChannel.end()) {
-            string channelToJoin = IDtoChannel.find(receiptID)->second;
-            joinChannel(channelToJoin);
-            return "Joined channel " + channelToJoin;
+        else if (receiptID == joinChannelReceiptID) {
+            cout << "[DEBUG] Joining channel" << endl;
+        }
+        // Exit a channel
+        else if (receiptID == exitChannelReceiptID) {
+            cout << "[DEBUG] Exiting channel" << endl;            
         }
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
@@ -214,19 +252,14 @@ string StompProtocol:: processReceipt(vector<string> args) {
 }
 
 
-//if the channel is not in the reportedEvents map, add it with an empty vector
-void StompProtocol:: joinChannel(string channel) {
-    if(reportedEvents.find(channel) == reportedEvents.end()) {
-        reportedEvents[channel] = {};
-    }
-}
+
 
 void StompProtocol :: disconnect() {
     if (connectionHandler != nullptr) {
         connectionHandler->close();
     }
     isConnected = false;
-    logOutID = -1;
+    logOutReceiptID = -1;
 }
 
 // string StompProtocol:: processError(vector<string> args) {

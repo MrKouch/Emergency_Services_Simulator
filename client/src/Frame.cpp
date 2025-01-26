@@ -35,14 +35,14 @@ ConnectFrame::ConnectFrame(const string& username, const string& passcode)
              {"login", username},
              {"passcode", passcode}}, "") {}
 
-SubscribeFrame::SubscribeFrame(const string& channelName, int id)
-    : Frame("SUBSCRIBE", {{"destination", channelName}, {"id", to_string(id)}}, "") {}
+SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receiptID)
+    : Frame("SUBSCRIBE", {{"destination", channelName}, {"id", to_string(subID)}, {"receipt", to_string(receiptID)}}, "") {}
 
 SendFrame::SendFrame(const string& destination, const string& body)
     : Frame("SEND", {{"destination", destination}}, body) {}
 
-UnsubscribeFrame::UnsubscribeFrame(const string& id)
-    : Frame("UNSUBSCRIBE", {{"id", id}}, "") {}
+UnsubscribeFrame::UnsubscribeFrame(const string& subID, int receiptID)
+    : Frame("UNSUBSCRIBE", {{"id", subID}, {"receipt", to_string(receiptID)}}, "") {}
 
 DisconnectFrame::DisconnectFrame(int receipt)
     : Frame("DISCONNECT", {{"receipt", to_string(receipt)}}, "") {}

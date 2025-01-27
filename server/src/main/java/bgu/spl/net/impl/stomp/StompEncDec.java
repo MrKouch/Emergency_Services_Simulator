@@ -38,7 +38,7 @@ public class StompEncDec implements MessageEncoderDecoder<String> {
 
     @Override
     public byte[] encode(String message) {
-        return (message + "\n").getBytes(); //uses utf8 by default
+        return (message + '\u0000').getBytes(); //uses utf8 by default
     }
     
 }

@@ -330,6 +330,10 @@ string StompProtocol:: processReceipt(vector<string> args) {
         }
         int receiptID = std::stoi(receipt);
         if (receiptID == logOutReceiptID) {
+            cout << "[DEBUG] RECEIPT IS: " << endl;
+            for (string arg : args) {
+                cout << arg << endl;
+            }
             disconnect();
             return "close the thread";
         }

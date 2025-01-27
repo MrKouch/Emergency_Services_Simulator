@@ -76,6 +76,14 @@ public class ConnectionsImpl<T> implements Connections<T> {
             }
         }
     }
+
+    public void closeConnection(int connectionId) {
+        try {
+            activeClients.get(connectionId).getcHandler().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
   
     public void connect(int connectionId, boolean blocking, ConnectionHandler<T> cHandler) {
         Client<T> client = new Client<T>(cHandler);

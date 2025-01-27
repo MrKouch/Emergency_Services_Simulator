@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FramesParser {
     private static final String[] connectFrameHeaders = {"accept-version", "host", "login", "passcode"};
     private static final String[] disconnectFrameHeaders = {"receipt"};
-    private static final String[] subscribeFrameHeaders = {"destination", "id"};
+    private static final String[] subscribeFrameHeaders = {"receipt", "destination", "id"};
     private static final String[] unsubscribeFrameHeaders = {"receipt"};
     private static final String[] sendFrameHeaders = {"destination", "event_name", "city", "date_time", "description",
                                                         "general_information", "active", "forces_arrival_at_scene"};

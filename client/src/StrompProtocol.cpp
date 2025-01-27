@@ -333,6 +333,10 @@ string StompProtocol:: processConnected() {
 
 
 string StompProtocol:: processReceipt(vector<string> args) {
+    cout << "[DEBUG] RECEIPT IS:" << endl;
+    for (string arg : args) {
+        cout << arg << endl;
+    }
     vector<string> header = splitLine(args[1]);
     string receipt = header[1];
     try {
@@ -341,8 +345,7 @@ string StompProtocol:: processReceipt(vector<string> args) {
         }
         int receiptID = std::stoi(receipt);
         if (receiptID == logOutReceiptID) {
-            cout << "[DEBUG] RECEIPT IS: " << endl;
-            for (string arg : args) {
+            for(string arg : args) {
                 cout << arg << endl;
             }
             disconnect();
@@ -350,7 +353,7 @@ string StompProtocol:: processReceipt(vector<string> args) {
         }
         // Join a channel
         else if (receiptID == joinChannelReceiptID) {
-            cout << "[DEBUG] Joining channel" << endl;
+            cout << "[DEBUG] Joining channel. RECEIPT IS:" << endl;
             for (string arg : args) {
                 cout << arg << endl;
             }
@@ -401,6 +404,9 @@ vector<string> StompProtocol :: splitLine(const string& line) {
         }
     }
     args.push_back(word);
+    for (string arg : args) {
+        cout << arg << endl;
+    }
     return args;
 }
 

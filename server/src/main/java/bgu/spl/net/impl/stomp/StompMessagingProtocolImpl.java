@@ -87,8 +87,9 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             }
             String destination = subscribeFrame.get("destination");
             String id = subscribeFrame.get("id");
+            String receiptId = subscribeFrame.get("receipt");
             connections.subscribe(connectionId, destination, id);
-            Frame receiptFrame = ReceiptFrame.getReceiptFrame(id);
+            Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
             connections.send(connectionId, receiptFrame.toString());
         } else if (command.equals("UNSUBSCRIBE")) {
             ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));

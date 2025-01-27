@@ -39,7 +39,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
             this.clientId = IdGenerator.generateNextId();
             
-            this.connections.connect(clientId, true, this);
+            this.connections.connect(clientId, this);
             
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);

@@ -85,13 +85,9 @@ public class ConnectionsImpl<T> implements Connections<T> {
         }
     }
   
-    public void connect(int connectionId, boolean blocking, ConnectionHandler<T> cHandler) {
+    public void connect(int connectionId, ConnectionHandler<T> cHandler) {
         Client<T> client = new Client<T>(cHandler);
-        if (blocking)
-            this.activeClients.putIfAbsent(connectionId, client);
-        else {
-            
-        }
+        this.activeClients.putIfAbsent(connectionId, client);
     }
 
     public ConcurrentHashMap<Integer, Client<T>> getActiveClients() {

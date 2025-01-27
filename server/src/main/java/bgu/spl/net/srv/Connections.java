@@ -28,4 +28,6 @@ public interface Connections<T> {
     User getUserByName(String username);
 
     void addUser(String username, User user);
+
+    void closeConnection(int connectionId);
 }

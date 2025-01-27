@@ -32,6 +32,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> connectFrame = FramesParser.parse("connect", Arrays.copyOfRange(lines, 1, lines.length));
             if (connectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("CONNECT", connectFrame));
+                handleError(connectionId, connections);
             }
             else {
                 String username = connectFrame.get("login");
@@ -39,7 +40,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 if (connections.isUserAlreadyActive(username)) {
                     Frame userAlreadyLoggedInFrame = ErrorFrame.getErrorFrame("USER ALREADY LOGGED IN");
                     connections.send(connectionId, userAlreadyLoggedInFrame.toString());
-                    shouldTerminate = true;
+                    handleError(connectionId, connections);
                 }
                 else {
                     User user = connections.getUserByName(username);
@@ -56,7 +57,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                     else {
                         Frame wrongPasswordFrame = ErrorFrame.getErrorFrame("WRONG PASSWORD");
                         connections.send(connectionId, wrongPasswordFrame.toString());
-                        
+                        handleError(connectionId, connections);
                     }
                 }
             }
@@ -65,6 +66,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
             if (disconnectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
+                handleError(connectionId, connections);
             }
             else {
                 ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
@@ -81,6 +83,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> subscribeFrame = FramesParser.parse("subscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (subscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
+                handleError(connectionId, connections);
             }
             String destination = subscribeFrame.get("destination");
             String id = subscribeFrame.get("id");
@@ -91,6 +94,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (unsubscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
+                handleError(connectionId, connections);
             }
             String destination = unsubscribeFrame.get("destination");
             String id = unsubscribeFrame.get("id");
@@ -102,10 +106,16 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
+                handleError(connectionId, connections);
             }
             String destination = sendFrame.get("destination");
             connections.send(destination, sendFrame);
         }
+    }
+
+    public void handleError(int connectionId, Connections<String> connections) {
+        connections.closeConnection(connectionId);
+        connections.disconnect(connectionId);
     }
 
     @Override

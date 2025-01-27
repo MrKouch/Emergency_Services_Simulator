@@ -27,5 +27,5 @@ public interface Connections<T> {
 
     User getUserByName(String username);
 
-    void addUserIfAbsent(String username, User user);
+    void addUser(String username, User user);
 }

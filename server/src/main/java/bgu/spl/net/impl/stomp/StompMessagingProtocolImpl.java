@@ -20,6 +20,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
 
     @Override
     public void start(int connectionId, Connections<String> connections, User user) {
+        System.out.println("[DEBUG]: in start");
         connections.attachUserToClient(connectionId, user);
     }
 
@@ -41,11 +42,15 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 }
                 else {
                     User user = connections.getUserByName(username);
-                    if (user == null || (user != null && user.getPassword() == password)) {
+                    if (user == null || (user != null && user.getPassword().equals(password))) {
+                        if (user == null) {
+                            user = new User(username, password);
+                            connections.addUser(username, user);
+                        }
+                        System.out.println("[DEBUG]: in connect");
                         start(connectionId, connections, user);
                         Frame connectedFrame = ConnectedFrame.getConnectedFrame();
                         connections.send(connectionId, connectedFrame.toString());
-                        connections.addUserIfAbsent(username, user);
                     }
                     else {
                         Frame wrongPasswordFrame = ErrorFrame.getErrorFrame("WRONG PASSWORD");
@@ -54,13 +59,24 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                     }
                 }
             }
-        } else if (command == "DISCONNECT") {
+        } else if (command.equals("DISCONNECT")) {
+            System.out.println("[DEBUG]: in disconnect");
             ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
             if (disconnectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
-            }            
+            }
+            else {
+                ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
+                connections.disconnect(connectionId);
+                // shouldTerminate = true;
+
+                Frame receiptFrame = ReceiptFrame.getReceiptFrame(disconnectFrame.get("receipt"));
+                System.out.println("[DEBUG]: sending receipt frame");
+                System.out.println(receiptFrame.toString());
+                connectionHandler.send(receiptFrame.toString());
+            }   
         }
-        else if (command == "SUBSCRIBE") {
+        else if (command.equals("SUBSCRIBE")) {
             ConcurrentHashMap<String, String> subscribeFrame = FramesParser.parse("subscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (subscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
@@ -70,7 +86,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             connections.subscribe(connectionId, destination, id);
             Frame receiptFrame = ReceiptFrame.getReceiptFrame(id);
             connections.send(connectionId, receiptFrame.toString());
-        } else if (command == "UNSUBSCRIBE") {
+        } else if (command.equals("UNSUBSCRIBE")) {
             ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (unsubscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
@@ -81,7 +97,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             String receiptId = unsubscribeFrame.get("receipt");
             Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
             connections.send(connectionId, receiptFrame.toString());
-        } else if (command == "SEND") {
+        } else if (command.equals("SEND")) {
             ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));

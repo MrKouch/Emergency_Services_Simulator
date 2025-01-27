@@ -1,4 +1,3 @@
-/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/FramesParsing.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/BaseServer.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/ErrorFrame.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/api/StompMessagingProtocol.java
@@ -26,10 +25,13 @@
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/rci/Command.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/Reactor.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/Client.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/ReceiptFrame.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/echo/EchoClient.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/stomp/ConnectionsImpl.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/MessageFrame.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/api/MessageEncoderDecoder.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/rci/ObjectEncoderDecoder.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/Frame.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/api/MessagingProtocol.java
 /workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/impl/newsfeed/NewsFeed.java
+/workspaces/Emergency_Services_Simulator/server/src/main/java/bgu/spl/net/srv/FramesParser.java

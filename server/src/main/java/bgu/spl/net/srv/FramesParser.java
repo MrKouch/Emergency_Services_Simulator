@@ -34,6 +34,7 @@ public class FramesParser {
                 frameData.put(key, value);
             }
             else {
+                System.out.println("[DEBUG]: missing key: " + key);
                 frameData.put("missing_key", key);
             }
         }

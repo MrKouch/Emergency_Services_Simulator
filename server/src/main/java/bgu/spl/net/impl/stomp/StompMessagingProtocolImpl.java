@@ -39,6 +39,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 if (connections.isUserAlreadyActive(username)) {
                     Frame userAlreadyLoggedInFrame = ErrorFrame.getErrorFrame("USER ALREADY LOGGED IN");
                     connections.send(connectionId, userAlreadyLoggedInFrame.toString());
+                    shouldTerminate = true;
                 }
                 else {
                     User user = connections.getUserByName(username);

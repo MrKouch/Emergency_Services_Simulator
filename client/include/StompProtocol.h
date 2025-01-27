@@ -12,17 +12,17 @@ using namespace std;
 class StompProtocol
 {
 private:
+    bool isConnected;
+    int logOutReceiptID;
+    int joinChannelReceiptID;
+    int exitChannelReceiptID;
+    int nextID;
+    thread arrivingMessagesThread;
     std::shared_ptr<ConnectionHandler> connectionHandler; // Use shared_ptr
     unordered_map<string, int> usersIDs; // user, ID
     unordered_map<string, vector<Event>> reportedEvents; // channel, reported events
     unordered_map<int, string> IDtoChannel; // ID, channel
     unordered_map<string, int> channelToID; // channel, ID
-    int nextID;
-    thread arrivingMessagesThread;
-    bool isConnected;
-    int logOutReceiptID;
-    int joinChannelReceiptID;
-    int exitChannelReceiptID;
 
 public:
     StompProtocol();
@@ -42,7 +42,7 @@ public:
 
     string processIncomingFrame(string& message);
     string processConnected();
-    string processMessage(vector<string> args);
+    void processMessage(vector<string> args);
     string processReceipt(vector<string> args);
 
     bool joinChannel(string channel);

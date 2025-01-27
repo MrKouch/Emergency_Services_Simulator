@@ -18,7 +18,8 @@ extern string HOST;
 extern short PORT;
 
 StompProtocol::StompProtocol() : 
-    isConnected(false), nextID(0), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1),
+    isConnected(false), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1), nextID(0),
+    arrivingMessagesThread(),   
     connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {
 }
 StompProtocol::~StompProtocol() {
@@ -76,9 +77,16 @@ void StompProtocol::createDepartingFrame(string& line) {
             cout << "exited channel " << args[1] << endl;
         }
         else if (command == "report") {
-            vector<string> sendMe = processSend(args);
-            for(string frame : sendMe) {
-                connectionHandler->sendMessage(frame);
+            if (args.size() != 2) {
+                cout << "report command needs 1 args: {file}" << endl;
+                return;
+            }
+            else {
+                vector<string> sendMe = processSend(args);
+                for(string frame : sendMe) {
+                    connectionHandler->sendMessage(frame);
+            }
+                cout << "reported" << endl;
             }
         }
         else if (command == "summary") {
@@ -281,6 +289,9 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
             std::cout << "Logged out" << std::endl;
             break;
         }
+        else if (incomingMessage == "default") {
+            continue;
+        }
         else {
             cout << incomingMessage << endl;
         }
@@ -291,7 +302,7 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
 // Server Frames Handling
 
 string StompProtocol:: processIncomingFrame(string& frame) {
-    string output;
+    string output = "default";
     vector<string> args = splitFrameToLines(frame);
     string command = args[0];
     if (command == "CONNECTED") {
@@ -302,7 +313,7 @@ string StompProtocol:: processIncomingFrame(string& frame) {
         output = processReceipt(args);
     }
     else if (command == "MESSAGE") {
-        output = processMessage(args);
+        processMessage(args);
     }
     else if (command == "ERROR") {
         disconnect();
@@ -330,6 +341,10 @@ string StompProtocol:: processReceipt(vector<string> args) {
         }
         int receiptID = std::stoi(receipt);
         if (receiptID == logOutReceiptID) {
+            cout << "[DEBUG] RECEIPT IS:" << endl;
+            for(string arg : args) {
+                cout << arg << endl;
+            }
             disconnect();
             return "close the thread";
         }
@@ -351,7 +366,7 @@ string StompProtocol:: processReceipt(vector<string> args) {
     return receipt;
 }
 
-string StompProtocol:: processMessage(vector<string> args) {
+void StompProtocol:: processMessage(vector<string> args) {
     string sub = args[1];
     string msgID = args[2];
     string destination = args[3];

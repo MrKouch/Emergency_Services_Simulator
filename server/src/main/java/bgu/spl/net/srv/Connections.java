@@ -7,7 +7,7 @@ public interface Connections<T> {
 
     boolean send(int connectionId, T msg);
 
-    void send(String channel, T msg);
+    void send(String channel, ConcurrentHashMap<String, String> msg);
 
     void disconnect(int connectionId);
 
@@ -18,4 +18,14 @@ public interface Connections<T> {
     boolean isUserAlreadyActive(String username);
 
     void attachUserToClient (int connectionId, User user);
+
+    Client<T> getActiveClient(int connectionId);
+
+    void subscribe(int connectionId, String destination, String id);
+
+    void unsubscribe(int connectionId, String destination, String id);
+
+    User getUserByName(String username);
+
+    void addUserIfAbsent(String username, User user);
 }

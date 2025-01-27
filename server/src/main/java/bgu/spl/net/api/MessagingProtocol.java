@@ -1,5 +1,7 @@
 package bgu.spl.net.api;
 
+import java.io.IOException;
+
 import bgu.spl.net.srv.Connections;
 import bgu.spl.net.srv.User;
 
@@ -11,7 +13,7 @@ public interface MessagingProtocol<T> {
      * @param msg the received message
      * @return the response to send or null if no response is expected by the client
      */
-    void process(T msg, Connections<T> connections, int connectionId);
+    void process(T msg, Connections<T> connections, int connectionId) throws IOException;
  
     /**
      * @return true if the connection should be terminated

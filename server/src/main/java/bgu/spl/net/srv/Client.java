@@ -17,4 +17,8 @@ public class Client<T> {
         this.user = user;
     }
 
+    public ConnectionHandler<T> getcHandler() {
+        return cHandler;
+    }
+
 }

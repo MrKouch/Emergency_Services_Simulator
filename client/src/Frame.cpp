@@ -48,7 +48,8 @@ SendFrame::SendFrame(const string& destination, Event& event)
                 "description:" + event.get_description() + "\n" +
                 "general_information:" + "\n" +
                 "active:" + event.get_general_information().at("active") + "\n" +
-                "forces_arrival_at_scene:" + event.get_general_information().at("forces arrival at scene:") + "\n";
+                "forces_arrival_at_scene:" + event.get_general_information().at("forces_arrival_at_scene") + "\n";
+                cout << "[DEBUG] destination channel is: " << destination << endl;
     }
 
 UnsubscribeFrame::UnsubscribeFrame(const string& subID, int receiptID)

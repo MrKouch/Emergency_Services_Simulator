@@ -33,6 +33,8 @@ public:
     vector<string> processSend(vector<string> args);
     string processSubscribe(vector<string> args);
     string processUnsubscribe(vector<string> args);
+    void generateSummary(const vector<string>& args);
+    string generateSummary(const string& description);
     string processDisconnect();
 
     void runArivingMessagesThread(std::shared_ptr<ConnectionHandler> connectionHandler);
@@ -43,7 +45,6 @@ public:
     string processConnected();
     string processMessage(vector<string> args);
     string processReceipt(vector<string> args);
-    string processError(vector<string> args);
 
     bool joinChannel(string channel);
     

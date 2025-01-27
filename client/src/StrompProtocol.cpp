@@ -1,11 +1,14 @@
 #include "../include/StompProtocol.h"
 #include "../include/Frame.h"
 #include "../include/ConnectionHandler.h"
+#include "../include/event.h"
 #include <vector>
 #include <thread>
-
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
 #include <unordered_map>
-
 #include <iostream>
 #include <sstream>
 
@@ -14,7 +17,10 @@ using namespace std;
 extern string HOST;
 extern short PORT;
 
-StompProtocol::StompProtocol() : isConnected(false), loggedInUser("", -1), receiptID(0) ,connectionHandler(nullptr), existingUsers(), summaries(), channelsIDs() {}
+StompProtocol::StompProtocol() : 
+    isConnected(false), nextID(0), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1),
+    connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {
+}
 StompProtocol::~StompProtocol() {
     if(connectionHandler != nullptr) {
         connectionHandler->close();
@@ -22,14 +28,7 @@ StompProtocol::~StompProtocol() {
     if(arrivingMessagesThread.joinable()) {
         arrivingMessagesThread.join();
     }
-}
-
-string& StompProtocol:: getLoggedInUser() {
-    return loggedInUser.first;
-}
-
-int StompProtocol:: getReceiptID() {
-    return loggedInUser.second;
+    cout << "[DEBUG] StompProtocol destroyed" << endl;
 }
 
 
@@ -58,30 +57,51 @@ void StompProtocol::createDepartingFrame(string& line) {
             cout << "The client is already logged in, log out before trying gain" << endl;
             return;
         }
-        // else if (command == "logout") {
-        //     frame = processDisconnect(args);
-        // }
-        // else if (command == "join") {
-        //     frame = processSubscribe(args);
-        // }
-        // else if (command == "SEND") {
-        //     frame = processSend(args);
-        // }
-        // else if (command == "UNSUBSCRIBE") {
-        //     frame = processUnsubscribe(args);
-        // }
-        // else {
-        //     throw "Invalid command";
-        // }
+        else if (command == "logout") {
+            frame = processDisconnect();
+        }
+        else if (command == "join") {
+            frame = processSubscribe(args);
+            if(frame == "Already subscribed to this channel") {
+                return;
+            }
+            cout << "joined channel " << args[1] << endl;
+        }
+        else if (command == "exit") {
+            frame = processUnsubscribe(args);
+            if (frame == "you are not subscribed to channel" + args[1]) {
+                cout << "you are not subscribed to channel " << args[1] << endl;
+                return;
+            }
+            cout << "exited channel " << args[1] << endl;
+        }
+        else if (command == "report") {
+            vector<string> sendMe = processSend(args);
+            for(string frame : sendMe) {
+                connectionHandler->sendMessage(frame);
+            }
+        }
+        else if (command == "summary") {
+            generateSummary(args);
+        }
+        else {
+            cout << "Illegal command, please try a different one" << endl;
+            return;
+        }
         if(connectionHandler == nullptr) {
-        //    throw "Connection handler is null - logical problem - debug!";
+            throw runtime_error("Connection handler is null - logical problem - debug!");
             return;
         }
     }
-        connectionHandler->sendMessage(frame);
+        if(command != "report") {
+            connectionHandler->sendMessage(frame);
+        }
 }
 
 string StompProtocol:: processConnect(vector<string> args) {
+    if(arrivingMessagesThread.joinable()) {
+        arrivingMessagesThread.join(); // wait for the thread to finish logging out the previous user
+    }
     connectionHandler = std::make_shared<ConnectionHandler>(args[1], std::stoi(args[2]));
     if(connectionHandler->connect()) {
         arrivingMessagesThread = thread(&StompProtocol::runArivingMessagesThread, this, connectionHandler);
@@ -90,51 +110,163 @@ string StompProtocol:: processConnect(vector<string> args) {
         string passcode = args[4];
         ConnectFrame frame(username, passcode);
         isConnected = true;
-        loggedInUser.first = username;
         return frame.toString();
     }
     else {
-        throw "Connection failed";
+        throw runtime_error("Connection failed");
     }
     
 }
 
 string StompProtocol:: processDisconnect() {
-    DisconnectFrame frame(loggedInUser.second);
+    logOutReceiptID = generateNextID();
+    DisconnectFrame frame(logOutReceiptID);
     return frame.toString();
 }
 
-// string StompProtocol:: processSubscribe(vector<string> args) {
-//     string destination = args[1];
-//     string channelName = args[2];
-//     if(channelsIDs.find(channelName) == channelsIDs.end()) {
-        
-//     }
-//     else {
-//         int id = generateID(channelName);
-//         channelsIDs[channelName] = id;
-        
-//     }
-        
-//     SubscribeFrame frame(destination, channelName);
-//     return frame.toString();
-// }
-
-string StompProtocol:: processSend(vector<string> args) {
-    string destination = args[1];
-    string body = args[2];
-    SendFrame frame(destination, body);
-    // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
-    return frame.toString();
+string StompProtocol:: processSubscribe(vector<string> args) {
+    string channel = args[1];
+    if(joinChannel(channel)) {
+        joinChannelReceiptID = generateNextID();
+        SubscribeFrame frame(channel, channelToID[channel], joinChannelReceiptID);
+        return frame.toString();
+    }
+    else {
+        return "Already subscribed to this channel";
+    }
 }
 
+//if the channel is not in the reportedEvents map, add it with an empty vector
+bool StompProtocol:: joinChannel(string channel) {
+    if(reportedEvents.find(channel) == reportedEvents.end()) {
+        reportedEvents[channel] = {};
+    }
+    if(channelToID.find(channel) == channelToID.end()) {
+        int subID = generateNextID();
+        channelToID[channel] = subID;
+        IDtoChannel[subID] = channel;
+        return true;
+    }
+    return false;
+}
 
 string StompProtocol:: processUnsubscribe(vector<string> args) {
-    string id = args[1];
-    UnsubscribeFrame frame(id);
-    return frame.toString();
+    string channel = args[1];
+    if(channelToID.find(channel) == channelToID.end()) {
+        return "you are not subscribed to channel" + channel;
+    }
+    else {
+        string subID = to_string(channelToID[channel]);
+        int eraseMEID = channelToID[channel];
+        channelToID.erase(channel);
+        IDtoChannel.erase(eraseMEID);
+        exitChannelReceiptID = generateNextID();
+        UnsubscribeFrame frame(subID, exitChannelReceiptID);
+        return frame.toString();
+    }
 }
 
+vector<string> StompProtocol:: processSend(vector<string> args) {
+    // string destination = args[1];
+    string file = args[1];
+    names_and_events events = parseEventsFile(file);
+    vector<string> reportedEvents;
+    for(Event event : events.events) {
+        SendFrame frame(event.get_channel_name(), event);
+        reportedEvents.push_back(frame.toString());
+    }
+    // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
+    return reportedEvents;
+}
+
+
+
+// Helper function to convert epoch time to date time string
+std::string epochToDateTime(int epoch) {
+    std::time_t t = epoch;
+    std::tm* tm = std::localtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(tm, "%d/%m/%y %H:%M");
+    return oss.str();
+}
+
+// Helper function to generate summary of description
+std::string generateSummary(const std::string& description) {
+    if (description.length() <= 27) {
+        return description;
+    }
+    return description.substr(0, 27) + "...";
+}
+
+void StompProtocol::generateSummary(const std::vector<std::string>& args) {
+    std::string channel_name = args[1];
+    std::string user = args[2];
+    std::string file = args[3];
+
+    // Retrieve events for the specified channel
+    if (reportedEvents.find(channel_name) == reportedEvents.end()) {
+        std::cerr << "Channel not found: " << channel_name << std::endl;
+        return;
+    }
+
+    std::vector<Event> events = reportedEvents[channel_name];
+    std::vector<Event> userEvents;
+
+    // Filter events for the specified user
+    for (const Event& event : events) {
+        if (event.getEventOwnerUser() == user) {
+            userEvents.push_back(event);
+        }
+    }
+
+    // Generate stats
+    int totalReports = userEvents.size();
+    int activeCount = 0;
+    int forcesArrivalCount = 0;
+
+    for (const Event& event : userEvents) {
+        if (event.get_general_information().count("active") && event.get_general_information().at("active") == "true") {
+            activeCount++;
+        }
+        if (event.get_general_information().count("forces arrival at scene") && event.get_general_information().at("forces arrival at scene") == "true") {
+            forcesArrivalCount++;
+        }
+    }
+
+    // Sort events by date_time and then by event_name lexicographically
+    std::sort(userEvents.begin(), userEvents.end(), [](const Event& a, const Event& b) {
+        if (a.get_date_time() != b.get_date_time()) {
+            return a.get_date_time() < b.get_date_time();
+        }
+        return a.get_name() < b.get_name();
+    });
+
+    // Generate report
+    std::ofstream outFile(file);
+    if (!outFile) {
+        std::cerr << "Failed to open file: " << file << std::endl;
+        return;
+    }
+
+    outFile << "Channel " << channel_name << "\n";
+    outFile << "Stats:\n";
+    outFile << "Total: " << totalReports << "\n";
+    outFile << "active: " << activeCount << "\n";
+    outFile << "forces arrival at scene: " << forcesArrivalCount << "\n";
+    outFile << "Event Reports:\n";
+
+    for (size_t i = 0; i < userEvents.size(); ++i) {
+        const Event& event = userEvents[i];
+        outFile << "Report_" << (i + 1) << ":\n";
+        outFile << "city: " << event.get_city() << "\n";
+        outFile << "date time: " << epochToDateTime(event.get_date_time()) << "\n";
+        outFile << "event name: " << event.get_name() << "\n";
+        outFile << "summary: " << generateSummary(event.get_description()) << "\n";
+    }
+
+    outFile.close();
+    std::cout << "Summary generated and written to " << file << std::endl;
+}
 
 
 
@@ -142,16 +274,17 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
     while(true) {
 		string answer;
         if (!connectionHandler->getMessage(answer)) {
-			std::cout << "Disconnected. Exiting...\n" << std::endl;
+			std::cout << "Disconnected. Exiting..." << std::endl;
 			break;
 		}
         answer.resize(answer.length() - 1);
-        string incomingFrame = processIncomingFrame(answer);
-        if(incomingFrame == "logout and close the connection and the thread") {
+        string incomingMessage = processIncomingFrame(answer);
+        if(incomingMessage == "close the thread") {
+            std::cout << "Logged out" << std::endl;
             break;
         }
         else {
-            cout << incomingFrame << endl;
+            cout << incomingMessage << endl;
         }
 	}
 }
@@ -164,68 +297,82 @@ string StompProtocol:: processIncomingFrame(string& frame) {
     vector<string> args = splitFrameToLines(frame);
     string command = args[0];
     if (command == "CONNECTED") {
-        cout << "Login successful" << endl;
         isConnected = true;
-        assignAndIncrementReceiptID();
-        openSummary(loggedInUser.first);
-        processConnected();
+        output = processConnected();
     }
-    // else if (command == "MESSAGE") {
-    //     output = processMessage(args);
-    // }
-    // else if (command == "RECEIPT") {
-    //     output = processReceipt(args);
-    // }
-    // else if (command == "ERROR") {
-    //     output = processError(args);
-    // }
+    else if (command == "RECEIPT") {
+        output = processReceipt(args);
+    }
+    else if (command == "MESSAGE") {
+        output = processMessage(args);
+    }
+    else if (command == "ERROR") {
+        output = frame;
+    }
     else {
-        throw "got an invalid frame from server!";
+        cout << "[DEBUG] incoming frame is: " << frame << endl;
+        throw runtime_error("got an invalid frame from server!");
     }
     return output;
 }
 
 string StompProtocol:: processConnected() {
         isConnected = true;
-        assignAndIncrementReceiptID();
-        existingUsers.insert({loggedInUser.first, {}});
-        openSummary(loggedInUser.first);
         return "Login successful";
 }
 
-// string StompProtocol:: processMessage(vector<string> args) {
-//     string destination = args[1];
-//     string body = args[2];
-//     string user = args[3];
-//     MessageFrame frame(destination, body);
-//     addtoSummary(user, frame);
-//     return frame.toString();
-// }
 
 string StompProtocol:: processReceipt(vector<string> args) {
-    string receipt = args[1];
-    if(stoi(receipt) == loggedInUser.second) {
-        isConnected = false;
-        loggedInUser.first = "";
-        loggedInUser.second = -1;
-        connectionHandler->close();
-        cout << "[DEBUG] Logout successful" << endl;
-        return "logout and close the connection and the thread";
+    vector<string> header = splitLine(args[1]);
+    string receipt = header[1];
+    try {
+        if (receipt.empty() || !std::all_of(receipt.begin(), receipt.end(), ::isdigit)) {
+            throw std::invalid_argument("Invalid receipt ID");
+        }
+        int receiptID = std::stoi(receipt);
+        if (receiptID == logOutReceiptID) {
+            disconnect();
+            return "close the thread";
+        }
+        // Join a channel
+        else if (receiptID == joinChannelReceiptID) {
+            cout << "[DEBUG] Joining channel" << endl;
+            for (string arg : args) {
+                cout << arg << endl;
+            }
+        }
+        // Exit a channel
+        else if (receiptID == exitChannelReceiptID) {
+            cout << "[DEBUG] Exiting channel" << endl;
+        }
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
+        return "Invalid receipt ID";
     }
-    else {
-        
-    }
-
     return receipt;
 }
 
-// string StompProtocol:: processError(vector<string> args) {
-//     string message = args[1];
-//     ErrorFrame frame(message);
-//     return frame.toString();
-// }
+string StompProtocol:: processMessage(vector<string> args) {
+    string sub = args[1];
+    string msgID = args[2];
+    string destination = args[3];
+    Event event(args[4]);
+    string channel = event.get_channel_name();
+    if(reportedEvents.find(channel) == reportedEvents.end()) {
+        reportedEvents[channel] = {};
+    }
+    reportedEvents[channel].push_back(event);
+}
 
 
+
+void StompProtocol :: disconnect() {
+    if (connectionHandler != nullptr) {
+        connectionHandler->close();
+    }
+    isConnected = false;
+    logOutReceiptID = -1;
+}
 
 vector<string> StompProtocol :: splitLine(const string& line) {
     vector<string> args = {};
@@ -261,17 +408,11 @@ vector<string> StompProtocol :: splitFrameToLines(const string& frame) {
     return args;
 }
 
-void StompProtocol:: openSummary(string& user) {
-    if(summaries.find(user) == summaries.end()) {
-        summaries[user] = {};
-    }
-}
 
-void StompProtocol:: assignAndIncrementReceiptID() {
-    if(existingUsers.find(loggedInUser.first) == existingUsers.end()) {
-        existingUsers.insert({loggedInUser.first, {}}); // username, IDs per channel
-        receiptID++;
-    }
+int StompProtocol:: generateNextID() {
+    int output = nextID;
+    nextID++;
+    return output;
 }
 
 

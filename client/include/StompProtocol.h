@@ -13,26 +13,28 @@ class StompProtocol
 {
 private:
     std::shared_ptr<ConnectionHandler> connectionHandler; // Use shared_ptr
-    unordered_map<string, unordered_map<string, int>> existingUsers; // username, IDs per channel
-    unordered_map<string, int> channelsIDs; // channelName, ID
-    unordered_map<string, vector<Frame>> summaries; // username, reported events
-    int receiptID;
+    unordered_map<string, int> usersIDs; // user, ID
+    unordered_map<string, vector<Event>> reportedEvents; // channel, reported events
+    unordered_map<int, string> IDtoChannel; // ID, channel
+    unordered_map<string, int> channelToID; // channel, ID
+    int nextID;
     thread arrivingMessagesThread;
     bool isConnected;
-    pair<string, int> loggedInUser; // username, receiptID
-    
+    int logOutReceiptID;
+    int joinChannelReceiptID;
+    int exitChannelReceiptID;
+
 public:
     StompProtocol();
     ~StompProtocol();
 
-    string& getLoggedInUser();
-    int getReceiptID();
-
     void createDepartingFrame(string& line);
     string processConnect(vector<string> args);
-    string processSend(vector<string> args);
+    vector<string> processSend(vector<string> args);
     string processSubscribe(vector<string> args);
     string processUnsubscribe(vector<string> args);
+    void generateSummary(const vector<string>& args);
+    string generateSummary(const string& description);
     string processDisconnect();
 
     void runArivingMessagesThread(std::shared_ptr<ConnectionHandler> connectionHandler);
@@ -43,15 +45,18 @@ public:
     string processConnected();
     string processMessage(vector<string> args);
     string processReceipt(vector<string> args);
-    string processError(vector<string> args);
-    void openSummary(string& user);
-    string addtoSummary(string user, Frame event);  
+
+    bool joinChannel(string channel);
+    
+    
+
+    void disconnect(); 
 
 
     
     vector<string> splitLine(const string& line);
     vector<string> splitFrameToLines(const string& frame);
-    void assignAndIncrementReceiptID();
+    int generateNextID();
 
 
 };

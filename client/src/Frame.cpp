@@ -1,11 +1,13 @@
-#include "../include/Frame.h"
-#include "../include/StompProtocol.h"
+#include "Frame.h"
+#include <string>
+#include <map>
 
 using namespace std;
 
-Frame::Frame(string command, map<string, string> headers, string body) : command_(command), headers_(headers), body_(body) {}
+Frame::Frame(string command, map<string, string> headers, string body)
+    : command_(command), headers_(headers), body_(body) {}
 
-string& Frame::getCommand() {
+string Frame::getCommand() {
     return command_;
 }
 
@@ -17,7 +19,7 @@ string& Frame::getBody() {
     return body_;
 }
 
-string& Frame::toString() {
+string Frame::toString() {
     string frame = command_ + "\n";
     for (auto const& header : headers_) {
         frame += header.first + ":" + header.second + "\n";
@@ -26,29 +28,35 @@ string& Frame::toString() {
     return frame;
 }
 
-
-ConnectFrame:: ConnectFrame(string username, string passcode) : Frame("CONNECT",
+ConnectFrame::ConnectFrame(const string& username, const string& passcode)
+    : Frame("CONNECT",
             {{"accept-version", "1.2"},
-            {"host", "stomp.cs.bgu.ac.il"},
-            {"login", username},
-            {"passcode", passcode}}, "") {}
+             {"host", "stomp.cs.bgu.ac.il"},
+             {"login", username},
+             {"passcode", passcode}}, "") {}
+
+SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receiptID)
+    : Frame("SUBSCRIBE", {{"destination", channelName}, {"id", to_string(subID)}, {"receipt", to_string(receiptID)}}, "") {}
 
 
 
-SubscribeFrame:: SubscribeFrame(string channelName) : Frame("SUBSCRIBE", {{"destination", channelName}/*, {"id:", use the global variable}*/}, "") {}
+SendFrame::SendFrame(const string& destination, Event& event)
+    : Frame("SEND", {{"destination", destination}}, "") {
+        body_ = "event_name:" + event.get_name() + "\n" +
+                "city:" + event.get_city() + "\n" +
+                "date_time:" + to_string(event.get_date_time()) + "\n" +
+                "description:" + event.get_description() + "\n" +
+                "general_information:" + "\n" +
+                "active:" + event.get_general_information().at("active") + "\n" +
+                "forces_arrival_at_scene:" + event.get_general_information().at("forces_arrival_at_scene") + "\n";
+                cout << "[DEBUG] destination channel is: " << destination << endl;
+    }
 
+UnsubscribeFrame::UnsubscribeFrame(const string& subID, int receiptID)
+    : Frame("UNSUBSCRIBE", {{"id", subID}, {"receipt", to_string(receiptID)}}, "") {}
 
-
-SendFrame:: SendFrame(string destination, string body) : Frame("SEND", {{"destination", destination}}, body) {}
-
-
-
-
-UnsubscribeFrame:: UnsubscribeFrame(string id) : Frame("UNSUBSCRIBE", {{"id:", id}}, "") {}
-
-
-
-DisconnectFrame:: DisconnectFrame(int receipt) : Frame("DISCONNECT", {{"receipt:", to_string(receipt)}}, "") {}
+DisconnectFrame::DisconnectFrame(int receipt)
+    : Frame("DISCONNECT", {{"receipt", to_string(receipt)}}, "") {}
 
 
 

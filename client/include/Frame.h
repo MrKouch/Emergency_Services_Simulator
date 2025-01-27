@@ -1,48 +1,46 @@
 #pragma once
 
 #include <string>
-#include <iostream>
 #include <map>
+#include <event.h>
 
 using namespace std;
 
 class Frame {
-    private:
-        string command_;
-        map<string, string> headers_;
-        string body_;
-    
-    public:
-        Frame(string command, map<string, string> headers, string body);
-        string& getCommand();
-        map<string, string> getHeaders();
-        string& getBody();
-        string& toString();
+protected:
+    string command_;
+    map<string, string> headers_;
+    string body_;
+
+public:
+    Frame(string command, map<string, string> headers, string body);
+    string getCommand();
+    map<string, string> getHeaders();
+    string& getBody();
+    string toString();
 };
 
 class ConnectFrame : public Frame {
-    public:
-        ConnectFrame(string username, string passcode);
+public:
+    ConnectFrame(const string& username, const string& passcode); // Use const references
 };
 
 class SendFrame : public Frame {
-    public:
-        SendFrame(string destination, string body);
+public:
+    SendFrame(const string& destination, Event& event); // Use const references
 };
 
-
 class SubscribeFrame : public Frame {
-    public:
-        SubscribeFrame(string channelName);
+public:
+    SubscribeFrame(const string& channelName, int subID, int receiptID); // Use const reference
 };
 
 class UnsubscribeFrame : public Frame {
-    public:
-        UnsubscribeFrame(string id);
+public:
+    UnsubscribeFrame(const string& subID, int receiptID); // Use const reference
 };
 
 class DisconnectFrame : public Frame {
-    public:
-        DisconnectFrame(int receipt);
+public:
+    DisconnectFrame(int receipt); // Use const reference
 };
-

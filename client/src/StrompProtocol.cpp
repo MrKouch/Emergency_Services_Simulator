@@ -304,6 +304,10 @@ void StompProtocol:: runArivingMessagesThread(std::shared_ptr<ConnectionHandler>
 string StompProtocol:: processIncomingFrame(string& frame) {
     string output = "default";
     vector<string> args = splitFrameToLines(frame);
+    // cout << "[DEBUG] incoming frame is: " << frame << endl;
+    for(string arg : args) {
+        cout << arg << endl;
+    }
     string command = args[0];
     if (command == "CONNECTED") {
         isConnected = true;
@@ -333,10 +337,6 @@ string StompProtocol:: processConnected() {
 
 
 string StompProtocol:: processReceipt(vector<string> args) {
-    cout << "[DEBUG] RECEIPT IS:" << endl;
-    for (string arg : args) {
-        cout << arg << endl;
-    }
     vector<string> header = splitLine(args[1]);
     string receipt = header[1];
     try {
@@ -410,7 +410,7 @@ vector<string> StompProtocol :: splitLine(const string& line) {
     return args;
 }
 
-vector<string> StompProtocol :: splitFrameToLines(const string& frame) {
+vector<string> StompProtocol::splitFrameToLines(const string& frame) {
     vector<string> args;
     string line = "";
     for(char c : frame) {
@@ -424,6 +424,10 @@ vector<string> StompProtocol :: splitFrameToLines(const string& frame) {
         else {
             line += c;
         }
+    }
+    // Handle the case where the frame does not end with a newline
+    if (!line.empty()) {
+        args.push_back(line);
     }
     return args;
 }

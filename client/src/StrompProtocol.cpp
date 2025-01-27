@@ -179,8 +179,6 @@ vector<string> StompProtocol:: processSend(vector<string> args) {
     return reportedEvents;
 }
 
-
-
 // Helper function to convert epoch time to date time string
 std::string epochToDateTime(int epoch) {
     std::time_t t = epoch;
@@ -191,7 +189,7 @@ std::string epochToDateTime(int epoch) {
 }
 
 // Helper function to generate summary of description
-std::string generateSummary(const std::string& description) {
+std::string generateSummaryHelper(const std::string& description) {
     if (description.length() <= 27) {
         return description;
     }
@@ -261,7 +259,7 @@ void StompProtocol::generateSummary(const std::vector<std::string>& args) {
         outFile << "city: " << event.get_city() << "\n";
         outFile << "date time: " << epochToDateTime(event.get_date_time()) << "\n";
         outFile << "event name: " << event.get_name() << "\n";
-        outFile << "summary: " << generateSummary(event.get_description()) << "\n";
+        outFile << "summary: " << generateSummaryHelper(event.get_description()) << "\n";
     }
 
     outFile.close();
@@ -307,6 +305,7 @@ string StompProtocol:: processIncomingFrame(string& frame) {
         output = processMessage(args);
     }
     else if (command == "ERROR") {
+        disconnect();
         output = frame;
     }
     else {

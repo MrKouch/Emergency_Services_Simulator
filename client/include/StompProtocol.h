@@ -34,7 +34,6 @@ public:
     string processSubscribe(vector<string> args);
     string processUnsubscribe(vector<string> args);
     void generateSummary(const vector<string>& args);
-    string generateSummary(const string& description);
     string processDisconnect();
 
     void runArivingMessagesThread(std::shared_ptr<ConnectionHandler> connectionHandler);

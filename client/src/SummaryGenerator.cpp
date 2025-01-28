@@ -44,8 +44,6 @@ void SummaryGenerator::generateSummary(const std::vector<std::string>& args, con
         }
     }
 
-    std::cout << "[DEBUG]: Total events for user: " << userEvents.size() << std::endl;
-
     // Generate stats
     int totalReports = userEvents.size();
     int activeCount = 0;
@@ -55,7 +53,7 @@ void SummaryGenerator::generateSummary(const std::vector<std::string>& args, con
         if (event.get_general_information().count("active") && event.get_general_information().at("active") == "true") {
             activeCount++;
         }
-        if (event.get_general_information().count("forces arrival at scene") && event.get_general_information().at("forces arrival at scene") == "true") {
+        if (event.get_general_information().count("forces_arrival_at_scene") && event.get_general_information().at("forces_arrival_at_scene") == "true") {
             forcesArrivalCount++;
         }
     }
@@ -79,7 +77,7 @@ void SummaryGenerator::generateSummary(const std::vector<std::string>& args, con
     outFile << "Stats:\n";
     outFile << "Total: " << totalReports << "\n";
     outFile << "active: " << activeCount << "\n";
-    outFile << "forces arrival at scene: " << forcesArrivalCount << "\n";
+    outFile << "forces_arrival_at_scene: " << forcesArrivalCount << "\n";
     outFile << "Event Reports:\n";
 
     for (size_t i = 0; i < userEvents.size(); ++i) {

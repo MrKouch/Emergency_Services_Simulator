@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 		StompProtocol* protocol = new StompProtocol();
 		string inputLine;
 		while (1) {
-			cout << "[DEBUG]: Please enter a command" << endl;
+			cout << "Please enter a command" << endl;
 			getline(cin, inputLine);
 			protocol->createDepartingFrame(inputLine);
 		}

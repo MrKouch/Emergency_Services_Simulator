@@ -172,6 +172,8 @@ string StompProtocol:: processUnsubscribe(vector<string> args) {
         IDtoChannel.erase(eraseMEID);
         exitChannelReceiptID = generateNextID();
         UnsubscribeFrame frame(subID, exitChannelReceiptID);
+        cout << "[DEBUG] Unsubscribing from channel. the frame which will be sent is:" << endl;
+        cout << frame.toString() << endl;
         return frame.toString();
     }
 }

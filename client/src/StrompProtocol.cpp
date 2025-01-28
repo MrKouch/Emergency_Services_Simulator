@@ -180,15 +180,15 @@ vector<string> StompProtocol:: processSend(vector<string> args) {
     // string destination = args[1];
     string file = args[1];
     names_and_events events = parseEventsFile(file);
-    vector<string> reportedEvents;
+    vector<string> reportMe;
     for(Event event : events.events) {
         SendFrame frame(event.get_channel_name(), event, loggedInUser);
-        reportedEvents.push_back(frame.toString());
+        reportMe.push_back(frame.toString());
         cout << "[DEBUG] send frame is: " << endl;
         cout << frame.toString() << endl;
     }
     // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
-    return reportedEvents;
+    return reportMe;
 }
 
 
@@ -303,7 +303,8 @@ void StompProtocol::processMessage(vector<string> args) {
     }
 
     // Check if all required keys exist in the map
-    if (argMap.find("destination") == argMap.end() ||
+    if (argMap.find("user") == argMap.end() ||
+        argMap.find("destination") == argMap.end() ||
         argMap.find("event_name") == argMap.end() ||
         argMap.find("city") == argMap.end() ||
         argMap.find("date_time") == argMap.end() ||
@@ -315,6 +316,7 @@ void StompProtocol::processMessage(vector<string> args) {
         return;
     }
 
+    std::string user = argMap["user"];
     std::string destination = argMap["destination"];
     std::string event_name = argMap["event_name"];
     std::string city = argMap["city"];
@@ -324,14 +326,13 @@ void StompProtocol::processMessage(vector<string> args) {
     std::string active = argMap["active"];
     std::string forces_arrival_at_scene = argMap["forces_arrival_at_scene"];
 
-    std::cout << "[DEBUG]: general_information: " << general_information << std::endl;
-
     std::map<std::string, std::string> general_info_map;
     general_info_map["general_information"] = general_information;
     general_info_map["active"] = active;
     general_info_map["forces_arrival_at_scene"] = forces_arrival_at_scene;
 
     Event event(destination, city, event_name, date_time, description, general_info_map);
+    event.setEventOwnerUser(user);
     std::string channel = event.get_channel_name();
     if (reportedEvents.find(channel) == reportedEvents.end()) {
         reportedEvents[channel] = {};

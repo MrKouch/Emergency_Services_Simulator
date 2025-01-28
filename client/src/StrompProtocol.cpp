@@ -2,6 +2,7 @@
 #include "../include/Frame.h"
 #include "../include/ConnectionHandler.h"
 #include "../include/event.h"
+#include "SummaryGenerator.h"
 #include <vector>
 #include <thread>
 #include <fstream>
@@ -90,7 +91,7 @@ void StompProtocol::createDepartingFrame(string& line) {
             }
         }
         else if (command == "summary") {
-            generateSummary(args);
+            SummaryGenerator::generateSummary(args, reportedEvents);
         }
         else {
             cout << "Illegal command, please try a different one" << endl;
@@ -189,92 +190,7 @@ vector<string> StompProtocol:: processSend(vector<string> args) {
     return reportedEvents;
 }
 
-// Helper function to convert epoch time to date time string
-std::string epochToDateTime(int epoch) {
-    std::time_t t = epoch;
-    std::tm* tm = std::localtime(&t);
-    std::ostringstream oss;
-    oss << std::put_time(tm, "%d/%m/%y %H:%M");
-    return oss.str();
-}
 
-// Helper function to generate summary of description
-std::string generateSummaryHelper(const std::string& description) {
-    if (description.length() <= 27) {
-        return description;
-    }
-    return description.substr(0, 27) + "...";
-}
-
-void StompProtocol::generateSummary(const std::vector<std::string>& args) {
-    std::string channel_name = args[1];
-    std::string user = args[2];
-    std::string file = args[3];
-
-    // Retrieve events for the specified channel
-    if (reportedEvents.find(channel_name) == reportedEvents.end()) {
-        std::cerr << "Channel not found: " << channel_name << std::endl;
-        return;
-    }
-
-    std::vector<Event> events = reportedEvents[channel_name];
-    std::vector<Event> userEvents;
-
-    // Filter events for the specified user
-    for (const Event& event : events) {
-        if (event.getEventOwnerUser() == user) {
-            userEvents.push_back(event);
-        }
-    }
-
-    // Generate stats
-    int totalReports = userEvents.size();
-    int activeCount = 0;
-    int forcesArrivalCount = 0;
-
-    for (const Event& event : userEvents) {
-        if (event.get_general_information().count("active") && event.get_general_information().at("active") == "true") {
-            activeCount++;
-        }
-        if (event.get_general_information().count("forces arrival at scene") && event.get_general_information().at("forces arrival at scene") == "true") {
-            forcesArrivalCount++;
-        }
-    }
-
-    // Sort events by date_time and then by event_name lexicographically
-    std::sort(userEvents.begin(), userEvents.end(), [](const Event& a, const Event& b) {
-        if (a.get_date_time() != b.get_date_time()) {
-            return a.get_date_time() < b.get_date_time();
-        }
-        return a.get_name() < b.get_name();
-    });
-
-    // Generate report
-    std::ofstream outFile(file);
-    if (!outFile) {
-        std::cerr << "Failed to open file: " << file << std::endl;
-        return;
-    }
-
-    outFile << "Channel " << channel_name << "\n";
-    outFile << "Stats:\n";
-    outFile << "Total: " << totalReports << "\n";
-    outFile << "active: " << activeCount << "\n";
-    outFile << "forces arrival at scene: " << forcesArrivalCount << "\n";
-    outFile << "Event Reports:\n";
-
-    for (size_t i = 0; i < userEvents.size(); ++i) {
-        const Event& event = userEvents[i];
-        outFile << "Report_" << (i + 1) << ":\n";
-        outFile << "city: " << event.get_city() << "\n";
-        outFile << "date time: " << epochToDateTime(event.get_date_time()) << "\n";
-        outFile << "event name: " << event.get_name() << "\n";
-        outFile << "summary: " << generateSummaryHelper(event.get_description()) << "\n";
-    }
-
-    outFile.close();
-    std::cout << "Summary generated and written to " << file << std::endl;
-}
 
 
 
@@ -372,6 +288,9 @@ string StompProtocol:: processReceipt(vector<string> args) {
 }
 
 void StompProtocol::processMessage(vector<string> args) {
+    for (string arg : args) {
+        cout << arg << endl;
+    }
     std::unordered_map<std::string, std::string> argMap;
     for (const std::string& arg : args) {
         size_t pos = arg.find(':');
@@ -382,6 +301,19 @@ void StompProtocol::processMessage(vector<string> args) {
         }
     }
 
+    // Check if all required keys exist in the map
+    if (argMap.find("destination") == argMap.end() ||
+        argMap.find("event_name") == argMap.end() ||
+        argMap.find("city") == argMap.end() ||
+        argMap.find("date_time") == argMap.end() ||
+        argMap.find("description") == argMap.end() ||
+        argMap.find("general_information") == argMap.end() ||
+        argMap.find("active") == argMap.end() ||
+        argMap.find("forces_arrival_at_scene") == argMap.end()) {
+        std::cerr << "Error: Missing required fields in the message" << std::endl;
+        return;
+    }
+
     std::string destination = argMap["destination"];
     std::string event_name = argMap["event_name"];
     std::string city = argMap["city"];
@@ -390,6 +322,8 @@ void StompProtocol::processMessage(vector<string> args) {
     std::string general_information = argMap["general_information"];
     std::string active = argMap["active"];
     std::string forces_arrival_at_scene = argMap["forces_arrival_at_scene"];
+
+    std::cout << "[DEBUG]: general_information: " << general_information << std::endl;
 
     std::map<std::string, std::string> general_info_map;
     general_info_map["general_information"] = general_information;

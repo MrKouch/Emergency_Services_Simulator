@@ -6,8 +6,8 @@ all: StompEMIClient
 EchoClient: bin/ConnectionHandler.o bin/echoClient.o
 	g++ -o bin/EchoClient bin/ConnectionHandler.o bin/echoClient.o $(LDFLAGS)
 
-StompEMIClient: bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o
-	g++ -o bin/StompEMIClient bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o $(LDFLAGS)
+StompEMIClient: bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o bin/SummaryGenerator.o
+	g++ -o bin/StompEMIClient bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o bin/SummaryGenerator.o $(LDFLAGS)
 	./bin/StompEMIClient 127.0.0.1 7777
 
 bin/ConnectionHandler.o: src/ConnectionHandler.cpp
@@ -27,6 +27,9 @@ bin/StompClient.o: src/StompClient.cpp
 
 bin/Frame.o: src/Frame.cpp
 	g++ $(CFLAGS) -o bin/Frame.o src/Frame.cpp
+
+bin/SummaryGenerator.o: src/SummaryGenerator.cpp
+	g++ $(CFLAGS) -o bin/SummaryGenerator.o src/SummaryGenerator.cpp
 
 .PHONY: clean
 clean:

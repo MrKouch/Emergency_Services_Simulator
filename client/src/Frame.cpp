@@ -42,7 +42,8 @@ SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receipt
 
 SendFrame::SendFrame(const string& destination, Event& event)
     : Frame("SEND", {{"destination", destination}}, "") {
-        body_ = "event_name:" + event.get_name() + "\n" +
+        body_ = "user:" + event.getEventOwnerUser() + "\n" +
+                "event_name:" + event.get_name() + "\n" +
                 "city:" + event.get_city() + "\n" +
                 "date_time:" + to_string(event.get_date_time()) + "\n" +
                 "description:" + event.get_description() + "\n" +

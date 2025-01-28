@@ -24,17 +24,18 @@ public class FramesParser {
     }
 
     public static ConcurrentHashMap<String, String> parse(String type, String[] lines) {
+        System.out.println("[DEBUG]: persing type: " + type);
         ConcurrentHashMap<String, String> frameData = new ConcurrentHashMap<String, String>();
         List<String> frameHeadersList = Arrays.asList(typesMap.get(type));
         for (String line : lines) {
-            String[] parts = line.split(":");
+            String[] parts = line.split(":", 2);
             String key = parts[0];
-            String value = parts[1];
+            String value = parts.length > 1 ? parts[1] : "";
             if (frameHeadersList.contains(key)) {
                 frameData.put(key, value);
             }
             else {
-                System.out.println("[DEBUG]: missing key: " + key);
+                System.out.println("[DEBUG]: got key: " + key + " but it's not in the list of headers for type: " + type);
                 frameData.put("missing_key", key);
             }
         }

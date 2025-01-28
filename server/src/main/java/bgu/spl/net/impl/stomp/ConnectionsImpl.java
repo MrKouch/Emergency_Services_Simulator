@@ -43,12 +43,26 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @SuppressWarnings("unchecked")
     @Override
     public void send(String channel, ConcurrentHashMap<String, String> msgFrame) {
+        System.out.println("[DEBUG]: in send for channel");
         String destination = msgFrame.get("destination");
         for (Client<T> client : subscriptions.get(destination)) {
+            System.out.println("[DEBUG]: in for loop 1");
             String subscriptionId = "";
             for (Map.Entry<String, String> entry : client.getUser().getSubscriptions().entrySet()) {
-                if (entry.getValue().equals(destination))
+                System.out.println("[DEBUG]: in for loop 2");
+                if (entry == null) {
+                    System.out.println("[DEBUG]: entry is null");
+                    continue;
+                }
+                System.out.println("[DEBUG]: in send in connectionsImpl");
+                System.out.println("[DEBUG]: destination: " + destination);
+                System.out.println("[DEBUG]: entry.getValue(): " + entry.getValue());
+                System.out.println("[DEBUG]: entry.getKey(): " + entry.getKey());
+                if (entry.getValue().equals(destination)) {
+                    System.out.println("[DEBUG]: found subscription id");
+                    System.out.println("[DEBUG]: subscription id: " + entry.getKey());
                     subscriptionId = entry.getKey();
+                }
             }
             Frame messageFrame = MessageFrame.getMessageFrame(msgFrame, subscriptionId);
             client.getcHandler().send((T) messageFrame.toString());
@@ -117,10 +131,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
         Client<T> client = getActiveClient(connectionId);
         User user = client.getUser();
         user.addSubscription(id, destination);
-        HashSet<Client<T>> subscribesClients = subscriptions.get(destination);
-        if (subscribesClients == null) {
-            subscribesClients = new HashSet<>();
-        }
+        HashSet<Client<T>> subscribesClients = subscriptions.computeIfAbsent(destination, k -> new HashSet<>());
         subscribesClients.add(client);
     }
 

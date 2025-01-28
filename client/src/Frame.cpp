@@ -24,7 +24,7 @@ string Frame::toString() {
     for (auto const& header : headers_) {
         frame += header.first + ":" + header.second + "\n";
     }
-    frame += "\n" + body_;
+    frame += body_;
     return frame;
 }
 

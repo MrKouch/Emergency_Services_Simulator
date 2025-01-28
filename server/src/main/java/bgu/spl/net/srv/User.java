@@ -33,7 +33,7 @@ public class User {
         return subscriptions;
     }
 
-    public void addSubscription(String subscription, String id) {
+    public void addSubscription(String id, String subscription) {
         this.subscriptions.put(id, subscription);
     }
 

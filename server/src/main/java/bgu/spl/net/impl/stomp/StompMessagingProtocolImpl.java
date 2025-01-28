@@ -104,12 +104,19 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
             connections.send(connectionId, receiptFrame.toString());
         } else if (command.equals("SEND")) {
-            ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
+            System.out.println("[DEBUG]: in send");
+            for (String line : lines) {
+                System.out.println(line);
+            }
+            ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
+                System.out.println("[DEBUG]: missing key in send frame");
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
                 handleError(connectionId, connections);
             }
+            System.out.println("[DEBUG]: before send channel");
             String destination = sendFrame.get("destination");
+            System.out.println("[DEBUG]: before send channel, destination: " + destination);
             connections.send(destination, sendFrame);
         }
     }

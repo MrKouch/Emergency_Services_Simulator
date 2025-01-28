@@ -6,6 +6,7 @@ public class MessageFrame {
     public static Frame getMessageFrame(ConcurrentHashMap<String, String> msgFrame, String subscriptionId) {
         ConcurrentHashMap<String, String> headers = new ConcurrentHashMap<>();
         headers.put("subscription", subscriptionId);
+        headers.put("user", msgFrame.get("user"));
         headers.put("message-id", String.valueOf(IdGenerator.generateNextId()));
         headers.put("destination", msgFrame.get("destination"));
         headers.put("event_name", msgFrame.get("event_name"));

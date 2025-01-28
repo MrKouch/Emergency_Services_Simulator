@@ -17,6 +17,8 @@ public interface Connections<T> {
 
     boolean isUserAlreadyActive(String username);
 
+    boolean isUserSubscribedToChannel(int connectionId, String channel);
+
     void attachUserToClient (int connectionId, User user);
 
     Client<T> getActiveClient(int connectionId);

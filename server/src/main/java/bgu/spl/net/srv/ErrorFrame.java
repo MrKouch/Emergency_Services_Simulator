@@ -12,6 +12,9 @@ public class ErrorFrame {
         } else if (type.equals("WRONG PASSWORD")) {
             headers.put("message", "Wrong Password");
             return new Frame("ERROR", headers);
+        } else if (type.equals("USER IS NOT SUBSCRIBED")) {
+            headers.put("message", "User is not subscribed to the channel");
+            return new Frame("ERROR", headers);
         }
         return null;
     }

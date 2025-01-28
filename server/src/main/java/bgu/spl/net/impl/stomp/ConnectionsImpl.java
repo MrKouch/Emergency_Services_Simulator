@@ -40,26 +40,23 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void send(String channel, ConcurrentHashMap<String, String> msgFrame) {
+    public synchronized void send(String channel, ConcurrentHashMap<String, String> msgFrame) {
         String destination = msgFrame.get("destination");
-        synchronized (subscriptions.get(destination)) {
-            for (Client<T> client : subscriptions.get(destination)) {
-                synchronized (client) {
-                    String subscriptionId = "";
-                    for (Map.Entry<String, String> entry : client.getUser().getSubscriptions().entrySet()) {
-                        if (entry.getValue().equals(destination)) {
-                            subscriptionId = entry.getKey();
-                        }
+        for (Client<T> client : subscriptions.get(destination)) {
+                String subscriptionId = "";
+                for (Map.Entry<String, String> entry : client.getUser().getSubscriptions().entrySet()) {
+                    if (entry.getValue().equals(destination)) {
+                        subscriptionId = entry.getKey();
                     }
-                    Frame messageFrame = MessageFrame.getMessageFrame(msgFrame, subscriptionId);
-                    client.getcHandler().send((T) messageFrame.toString());
                 }
-            }
+                Frame messageFrame = MessageFrame.getMessageFrame(msgFrame, subscriptionId);
+                client.getcHandler().send((T) messageFrame.toString());
         }
+        
     }
 
     @Override
-    public void disconnect(int connectionId) {
+    public synchronized void disconnect(int connectionId) {
         String username = activeClients.remove(connectionId).getUser().getUsername();
         synchronized (subscriptions) {
             for (HashSet<Client<T>> subscribedClients : subscriptions.values()) {

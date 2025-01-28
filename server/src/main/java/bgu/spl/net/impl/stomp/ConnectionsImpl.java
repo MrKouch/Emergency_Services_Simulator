@@ -110,7 +110,13 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public boolean isUserSubscribedToChannel(int connectionId, String channel) {
         HashSet<Client<T>> subscribedClients = subscriptions.get(channel);
         if (subscribedClients == null) {
+            System.out.println("[DEBUG]: subscribedClients is null");
             return false;
+        }
+        System.out.println("[DEBUG]: username: " + activeClients.get(connectionId).getUser().getUsername());
+        System.out.println("[DEBUG]: usernames: ");
+        for (Client<T> client : subscribedClients) {
+            System.out.println("[DEBUG]: " + client.getUser().getUsername());
         }
         return subscribedClients.contains(activeClients.get(connectionId));
     }
@@ -122,9 +128,13 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public void subscribe(int connectionId, String destination, String id) {
         Client<T> client = getActiveClient(connectionId);
         User user = client.getUser();
+        System.out.println("[DEBUG]: user descriptions before user.addSubscription: " + user.getSubscriptions());
         user.addSubscription(id, destination);
+        System.out.println("[DEBUG]: user descriptions after user.addSubscription: " + user.getSubscriptions());
         HashSet<Client<T>> subscribesClients = subscriptions.computeIfAbsent(destination, k -> new HashSet<>());
+        System.out.println("[DEBUG]: subscriptions before subscribesClients.add: " + subscribesClients);
         subscribesClients.add(client);
+        System.out.println("[DEBUG]: subscriptions after subscribesClients.add: " + subscribesClients);
     }
 
     public void unsubscribe(int connectionId, String destination, String id) {

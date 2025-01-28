@@ -111,7 +111,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             }
             System.out.println("[DEBUG]: end of send frame...");
             String destination = sendFrame.get("destination");
-            if (!connections.isUserSubscribedToChannel(connectionId, command)) {
+            if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
                 Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
                 connections.send(connectionId, userIsNotSubscribedFrame.toString());
                 handleError(connectionId, connections);

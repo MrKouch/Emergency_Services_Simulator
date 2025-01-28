@@ -1,4 +1,5 @@
 #include "Frame.h"
+#include "StompProtocol.h"
 #include <string>
 #include <map>
 
@@ -40,9 +41,9 @@ SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receipt
 
 
 
-SendFrame::SendFrame(const string& destination, Event& event)
+SendFrame::SendFrame(const string& destination, Event& event, string user)
     : Frame("SEND", {{"destination", destination}}, "") {
-        body_ = "user:" + event.getEventOwnerUser() + "\n" +
+        body_ = "user:" + user + "\n" +
                 "event_name:" + event.get_name() + "\n" +
                 "city:" + event.get_city() + "\n" +
                 "date_time:" + to_string(event.get_date_time()) + "\n" +

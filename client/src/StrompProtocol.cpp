@@ -19,9 +19,9 @@ extern string HOST;
 extern short PORT;
 
 StompProtocol::StompProtocol() : 
-    isConnected(false), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1), nextID(0),
+    isConnected(false), logOutReceiptID(-1), joinChannelReceiptID(-1), exitChannelReceiptID(-1), nextID(0), loggedInUser(""),
     arrivingMessagesThread(),   
-    connectionHandler(nullptr), usersIDs(), reportedEvents(), IDtoChannel(), channelToID() {
+    connectionHandler(nullptr), reportedEvents(), IDtoChannel(), channelToID() {
 }
 StompProtocol::~StompProtocol() {
     if(connectionHandler != nullptr) {
@@ -119,6 +119,7 @@ string StompProtocol:: processConnect(vector<string> args) {
         string passcode = args[4];
         ConnectFrame frame(username, passcode);
         isConnected = true;
+        loggedInUser = username;
         return frame.toString();
     }
     else {
@@ -181,7 +182,7 @@ vector<string> StompProtocol:: processSend(vector<string> args) {
     names_and_events events = parseEventsFile(file);
     vector<string> reportedEvents;
     for(Event event : events.events) {
-        SendFrame frame(event.get_channel_name(), event);
+        SendFrame frame(event.get_channel_name(), event, loggedInUser);
         reportedEvents.push_back(frame.toString());
         cout << "[DEBUG] send frame is: " << endl;
         cout << frame.toString() << endl;
@@ -345,6 +346,7 @@ void StompProtocol :: disconnect() {
         connectionHandler->close();
     }
     isConnected = false;
+    loggedInUser = "";
     logOutReceiptID = -1;
 }
 
@@ -395,6 +397,7 @@ int StompProtocol:: generateNextID() {
     nextID++;
     return output;
 }
+
 
 
 

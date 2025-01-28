@@ -14,8 +14,6 @@ public class Client<T> {
     }
 
     public void setUser(User user) {
-        System.out.println("[DEBUG]: in setUser");
-        System.out.println("[DEBUG]: user is " + user);
         this.user = user;
     }
 

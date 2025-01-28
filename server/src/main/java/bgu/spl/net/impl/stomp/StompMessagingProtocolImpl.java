@@ -27,6 +27,9 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
     public void process(String msg, Connections<String> connections, int connectionId) throws IOException {
         String[] lines = msg.split(System.lineSeparator());
         String command = lines[0];
+        for (String line : lines) {
+            System.out.println(line);
+        }
         if (command.equals("CONNECT")) {
             ConcurrentHashMap<String, String> connectFrame = FramesParser.parse("connect", Arrays.copyOfRange(lines, 1, lines.length));
             if (connectFrame.get("missing_key") != null) {
@@ -68,10 +71,8 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             else {
                 ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
                 connections.disconnect(connectionId);
-                // shouldTerminate = true;
 
                 Frame receiptFrame = ReceiptFrame.getReceiptFrame(disconnectFrame.get("receipt"));
-                System.out.println(receiptFrame.toString());
                 connectionHandler.send(receiptFrame.toString());
             }   
         }
@@ -109,11 +110,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 handleError(connectionId, connections, true);
             }
             else {
-                System.out.println("[DEBUG]: send frame...");
-                for (String line : lines) {
-                    System.out.println(line);
-                }
-                System.out.println("[DEBUG]: end of send frame...");
                 String destination = sendFrame.get("destination");
                 if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
                     Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");

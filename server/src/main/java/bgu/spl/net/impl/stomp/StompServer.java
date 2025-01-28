@@ -4,8 +4,6 @@ import bgu.spl.net.srv.Server;
 public class StompServer {
 
     public static void main(String[] args) {
-        System.out.println("awerwer");
-        
 
         // you can use any server... 
         Server.threadPerClient(

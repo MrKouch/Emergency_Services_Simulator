@@ -47,7 +47,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                     protocol.process(nextMessage, connections, clientId);
                 }
             }
-            System.out.println("[DEBUG]: after while");
                 
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -64,8 +63,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     @Override
     public void send(T msg) {
         try {
-            System.out.println("[DEBUG]: in send in cnnectionHandler");
-            System.out.println("[DEBUG]: msg is: \n" + msg);
             out.write(encdec.encode(msg));
             out.flush();
         } catch (IOException e) {

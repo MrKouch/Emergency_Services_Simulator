@@ -10,10 +10,10 @@ public class ErrorFrame {
             headers.put("message", "User already logged in");
             return new Frame("ERROR", headers);
         } else if (type.equals("WRONG PASSWORD")) {
-            headers.put("message", "Wrong Password");
+            headers.put("message", "User password is different than what you inserted");
             return new Frame("ERROR", headers);
         } else if (type.equals("USER IS NOT SUBSCRIBED")) {
-            headers.put("message", "User is not subscribed to the channel");
+            headers.put("message", "You are not subscribed to this channel");
             return new Frame("ERROR", headers);
         }
         return null;

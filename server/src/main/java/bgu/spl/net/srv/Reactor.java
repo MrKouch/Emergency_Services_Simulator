@@ -46,7 +46,9 @@ public class Reactor<T> implements Server<T> {
         try (Selector selector = Selector.open();
                 ServerSocketChannel serverSock = ServerSocketChannel.open()) {
 
+
             this.selector = selector; //just to be able to close
+            System.out.println("[DEBUG]: reactor shit");
 
             serverSock.bind(new InetSocketAddress(port));
             serverSock.configureBlocking(false);

@@ -31,7 +31,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> connectFrame = FramesParser.parse("connect", Arrays.copyOfRange(lines, 1, lines.length));
             if (connectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("CONNECT", connectFrame));
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, false);
             }
             else {
                 String username = connectFrame.get("login");
@@ -39,7 +39,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 if (connections.isUserAlreadyActive(username)) {
                     Frame userAlreadyLoggedInFrame = ErrorFrame.getErrorFrame("USER ALREADY LOGGED IN");
                     connections.send(connectionId, userAlreadyLoggedInFrame.toString());
-                    handleError(connectionId, connections);
+                    handleError(connectionId, connections, false);
                 }
                 else {
                     User user = connections.getUserByName(username);
@@ -55,7 +55,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                     else {
                         Frame wrongPasswordFrame = ErrorFrame.getErrorFrame("WRONG PASSWORD");
                         connections.send(connectionId, wrongPasswordFrame.toString());
-                        handleError(connectionId, connections);
+                        handleError(connectionId, connections, false);
                     }
                 }
             }
@@ -63,7 +63,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
             if (disconnectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, true);
             }
             else {
                 ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
@@ -79,7 +79,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> subscribeFrame = FramesParser.parse("subscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (subscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, true);
             }
             String destination = subscribeFrame.get("destination");
             String id = subscribeFrame.get("id");
@@ -91,11 +91,10 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (unsubscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, true);
             }
-            String destination = unsubscribeFrame.get("destination");
             String id = unsubscribeFrame.get("id");
-            connections.unsubscribe(connectionId, destination, id);
+            connections.unsubscribe(connectionId, id);
             String receiptId = unsubscribeFrame.get("receipt");
             Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
             connections.send(connectionId, receiptFrame.toString());
@@ -103,7 +102,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, true);
             }
             System.out.println("[DEBUG]: send frame...");
             for (String line : lines) {
@@ -114,15 +113,17 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
                 Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
                 connections.send(connectionId, userIsNotSubscribedFrame.toString());
-                handleError(connectionId, connections);
+                handleError(connectionId, connections, true);
             }
             connections.send(destination, sendFrame);
         }
     }
 
-    public void handleError(int connectionId, Connections<String> connections) {
+    public void handleError(int connectionId, Connections<String> connections, boolean isLogged) {
         connections.closeConnection(connectionId);
-        connections.disconnect(connectionId);
+        if (isLogged) {
+            connections.disconnect(connectionId);
+        }
     }
 
     @Override

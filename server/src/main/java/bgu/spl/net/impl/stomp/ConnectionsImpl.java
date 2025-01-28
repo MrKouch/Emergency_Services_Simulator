@@ -60,8 +60,10 @@ public class ConnectionsImpl<T> implements Connections<T> {
         System.out.println("Client disconnected");
         Client<T> theClient = activeClients.get(connectionId);
         System.out.println("after Client disconnected");
+        if (theClient == null)
+            System.out.println("theClient is null");
         if (theClient.getUser() == null)
-            System.out.println("Client user is null");
+            System.out.println("theClient.getUser() is null");
         System.out.println(theClient.getUser().getUsername() + " disconnected");
         String username = activeClients.remove(connectionId).getUser().getUsername();
 
@@ -110,13 +112,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public boolean isUserSubscribedToChannel(int connectionId, String channel) {
         HashSet<Client<T>> subscribedClients = subscriptions.get(channel);
         if (subscribedClients == null) {
-            System.out.println("[DEBUG]: subscribedClients is null");
             return false;
-        }
-        System.out.println("[DEBUG]: username: " + activeClients.get(connectionId).getUser().getUsername());
-        System.out.println("[DEBUG]: usernames: ");
-        for (Client<T> client : subscribedClients) {
-            System.out.println("[DEBUG]: " + client.getUser().getUsername());
         }
         return subscribedClients.contains(activeClients.get(connectionId));
     }
@@ -137,10 +133,14 @@ public class ConnectionsImpl<T> implements Connections<T> {
         System.out.println("[DEBUG]: subscriptions after subscribesClients.add: " + subscribesClients);
     }
 
-    public void unsubscribe(int connectionId, String destination, String id) {
+    public void unsubscribe(int connectionId, String id) {
+        System.out.println("[DEBUG]: unsubscribe");
         Client<T> client = getActiveClient(connectionId);
         User user = client.getUser();
+        String destination = user.getSubscriptions().get(id);
         user.removeSubscription(id);
+        System.out.println("destination: " + destination);
+        System.out.println("subscriptions: " + subscriptions);
         HashSet<Client<T>> subscribesClients = subscriptions.get(destination);
         // we can assume that a case in which a client unsubscribe a channel that he hasnt joined to, is being resolved in the client
         subscribesClients.remove(client);

@@ -25,7 +25,7 @@ public interface Connections<T> {
 
     void subscribe(int connectionId, String destination, String id);
 
-    void unsubscribe(int connectionId, String destination, String id);
+    void unsubscribe(int connectionId, String id);
 
     User getUserByName(String username);
 

@@ -10,7 +10,7 @@ public class FramesParser {
     private static final String[] disconnectFrameHeaders = {"receipt"};
     private static final String[] subscribeFrameHeaders = {"receipt", "destination", "id"};
     private static final String[] unsubscribeFrameHeaders = {"receipt"};
-    private static final String[] sendFrameHeaders = {"destination", "event_name", "city", "date_time", "description",
+    private static final String[] sendFrameHeaders = {"user", "destination", "event_name", "city", "date_time", "description",
                                                         "general_information", "active", "forces_arrival_at_scene"};
     private static final ConcurrentHashMap<String, String[]> typesMap;
 

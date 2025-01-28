@@ -20,7 +20,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
 
     @Override
     public void start(int connectionId, Connections<String> connections, User user) {
-        System.out.println("[DEBUG]: in start");
         connections.attachUserToClient(connectionId, user);
     }
 
@@ -49,7 +48,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                             user = new User(username, password);
                             connections.addUser(username, user);
                         }
-                        System.out.println("[DEBUG]: in connect");
                         start(connectionId, connections, user);
                         Frame connectedFrame = ConnectedFrame.getConnectedFrame();
                         connections.send(connectionId, connectedFrame.toString());
@@ -62,7 +60,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 }
             }
         } else if (command.equals("DISCONNECT")) {
-            System.out.println("[DEBUG]: in disconnect");
             ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
             if (disconnectFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
@@ -74,7 +71,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 // shouldTerminate = true;
 
                 Frame receiptFrame = ReceiptFrame.getReceiptFrame(disconnectFrame.get("receipt"));
-                System.out.println("[DEBUG]: sending receipt frame");
                 System.out.println(receiptFrame.toString());
                 connectionHandler.send(receiptFrame.toString());
             }   
@@ -104,19 +100,22 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
             Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
             connections.send(connectionId, receiptFrame.toString());
         } else if (command.equals("SEND")) {
-            System.out.println("[DEBUG]: in send");
-            for (String line : lines) {
-                System.out.println(line);
-            }
             ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
-                System.out.println("[DEBUG]: missing key in send frame");
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
                 handleError(connectionId, connections);
             }
-            System.out.println("[DEBUG]: before send channel");
+            System.out.println("[DEBUG]: send frame...");
+            for (String line : lines) {
+                System.out.println(line);
+            }
+            System.out.println("[DEBUG]: end of send frame...");
             String destination = sendFrame.get("destination");
-            System.out.println("[DEBUG]: before send channel, destination: " + destination);
+            if (!connections.isUserSubscribedToChannel(connectionId, command)) {
+                Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
+                connections.send(connectionId, userIsNotSubscribedFrame.toString());
+                handleError(connectionId, connections);
+            }
             connections.send(destination, sendFrame);
         }
     }

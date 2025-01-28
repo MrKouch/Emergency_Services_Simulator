@@ -48,6 +48,7 @@ public class Reactor<T> implements Server<T> {
 
 
             this.selector = selector; //just to be able to close
+            System.out.println("in reactor");
 
             serverSock.bind(new InetSocketAddress(port));
             serverSock.configureBlocking(false);

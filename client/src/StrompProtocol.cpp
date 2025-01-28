@@ -241,8 +241,8 @@ string StompProtocol:: processIncomingFrame(string& frame) {
         processMessage(args);
     }
     else if (command == "ERROR") {
+        cout << frame << endl;
         disconnect();
-        output = frame;
     }
     else {
         throw runtime_error("got an invalid frame from server!");
@@ -268,14 +268,6 @@ string StompProtocol:: processReceipt(vector<string> args) {
             disconnect();
             return "close the thread";
         }
-        // Join a channel
-        // else if (receiptID == joinChannelReceiptID) {
-        //     cout << "Joining channel" << endl;
-        // }
-        // // Exit a channel
-        // else if (receiptID == exitChannelReceiptID) {
-        //     cout << "Exiting channel" << endl;
-        // }
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid receipt ID: " << e.what() << std::endl;
         return "Invalid receipt ID";
@@ -332,7 +324,9 @@ void StompProtocol::processMessage(vector<string> args) {
     reportedEvents[channel].push_back(event);
 }
 
-
+string StompProtocol:: processError(string frame) {
+    return frame;
+}
 
 void StompProtocol :: disconnect() {
     if (connectionHandler != nullptr) {

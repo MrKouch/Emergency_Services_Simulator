@@ -123,7 +123,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
     }
 
     public void handleError(int connectionId, Connections<String> connections, boolean isLogged) {
-        connections.closeConnection(connectionId);
         if (isLogged) {
             connections.disconnect(connectionId);
         }

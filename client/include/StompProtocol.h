@@ -43,6 +43,7 @@ public:
     string processConnected();
     void processMessage(vector<string> args);
     string processReceipt(vector<string> args);
+    string processError(string frame);
 
 
     bool joinChannel(string channel);

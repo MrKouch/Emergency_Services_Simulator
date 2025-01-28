@@ -8,7 +8,6 @@ EchoClient: bin/ConnectionHandler.o bin/echoClient.o
 
 StompEMIClient: bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o bin/SummaryGenerator.o
 	g++ -o bin/StompEMIClient bin/ConnectionHandler.o bin/StrompProtocol.o bin/StompClient.o bin/event.o bin/Frame.o bin/SummaryGenerator.o $(LDFLAGS)
-	./bin/StompEMIClient 127.0.0.1 7777
 
 bin/ConnectionHandler.o: src/ConnectionHandler.cpp
 	g++ $(CFLAGS) -o bin/ConnectionHandler.o src/ConnectionHandler.cpp

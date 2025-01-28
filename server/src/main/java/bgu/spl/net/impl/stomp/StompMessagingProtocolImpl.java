@@ -81,41 +81,48 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
                 handleError(connectionId, connections, true);
             }
-            String destination = subscribeFrame.get("destination");
-            String id = subscribeFrame.get("id");
-            String receiptId = subscribeFrame.get("receipt");
-            connections.subscribe(connectionId, destination, id);
-            Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
-            connections.send(connectionId, receiptFrame.toString());
+            else {
+                String destination = subscribeFrame.get("destination");
+                String id = subscribeFrame.get("id");
+                String receiptId = subscribeFrame.get("receipt");
+                connections.subscribe(connectionId, destination, id);
+                Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
+                connections.send(connectionId, receiptFrame.toString());
+            }
         } else if (command.equals("UNSUBSCRIBE")) {
             ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
             if (unsubscribeFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
                 handleError(connectionId, connections, true);
             }
-            String id = unsubscribeFrame.get("id");
-            connections.unsubscribe(connectionId, id);
-            String receiptId = unsubscribeFrame.get("receipt");
-            Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
-            connections.send(connectionId, receiptFrame.toString());
+            else {
+                String id = unsubscribeFrame.get("id");
+                connections.unsubscribe(connectionId, id);
+                String receiptId = unsubscribeFrame.get("receipt");
+                Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
+                connections.send(connectionId, receiptFrame.toString());
+            }
         } else if (command.equals("SEND")) {
             ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
             if (sendFrame.get("missing_key") != null) {
                 connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
                 handleError(connectionId, connections, true);
             }
-            System.out.println("[DEBUG]: send frame...");
-            for (String line : lines) {
-                System.out.println(line);
+            else {
+                System.out.println("[DEBUG]: send frame...");
+                for (String line : lines) {
+                    System.out.println(line);
+                }
+                System.out.println("[DEBUG]: end of send frame...");
+                String destination = sendFrame.get("destination");
+                if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
+                    Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
+                    connections.send(connectionId, userIsNotSubscribedFrame.toString());
+                    handleError(connectionId, connections, true);
+                }
+                else
+                    connections.send(destination, sendFrame);
             }
-            System.out.println("[DEBUG]: end of send frame...");
-            String destination = sendFrame.get("destination");
-            if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
-                Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
-                connections.send(connectionId, userIsNotSubscribedFrame.toString());
-                handleError(connectionId, connections, true);
-            }
-            connections.send(destination, sendFrame);
         }
     }
 

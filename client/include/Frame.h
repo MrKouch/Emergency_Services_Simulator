@@ -27,7 +27,7 @@ public:
 
 class SendFrame : public Frame {
 public:
-    SendFrame(const string& destination, Event& event); // Use const references
+    SendFrame(const string& destination, Event& event, const string& user); // Use const references
 };
 
 class SubscribeFrame : public Frame {

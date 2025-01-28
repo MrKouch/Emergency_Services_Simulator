@@ -41,7 +41,7 @@ SubscribeFrame::SubscribeFrame(const string& channelName, int subID, int receipt
 
 
 
-SendFrame::SendFrame(const string& destination, Event& event, string user)
+SendFrame::SendFrame(const string& destination, Event& event, const string& user)
     : Frame("SEND", {{"destination", destination}}, "") {
         body_ = "user:" + user + "\n" +
                 "event_name:" + event.get_name() + "\n" +

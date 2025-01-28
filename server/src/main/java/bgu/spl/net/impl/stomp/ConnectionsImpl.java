@@ -42,37 +42,34 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @Override
     public void send(String channel, ConcurrentHashMap<String, String> msgFrame) {
         String destination = msgFrame.get("destination");
-        for (Client<T> client : subscriptions.get(destination)) {
-            String subscriptionId = "";
-            for (Map.Entry<String, String> entry : client.getUser().getSubscriptions().entrySet()) {
-                if (entry.getValue().equals(destination)) {
-                    subscriptionId = entry.getKey();
+        synchronized (subscriptions.get(destination)) {
+            for (Client<T> client : subscriptions.get(destination)) {
+                synchronized (client) {
+                    String subscriptionId = "";
+                    for (Map.Entry<String, String> entry : client.getUser().getSubscriptions().entrySet()) {
+                        if (entry.getValue().equals(destination)) {
+                            subscriptionId = entry.getKey();
+                        }
+                    }
+                    Frame messageFrame = MessageFrame.getMessageFrame(msgFrame, subscriptionId);
+                    client.getcHandler().send((T) messageFrame.toString());
                 }
             }
-            Frame messageFrame = MessageFrame.getMessageFrame(msgFrame, subscriptionId);
-            client.getcHandler().send((T) messageFrame.toString());
         }
                 
     }
 
     @Override
     public void disconnect(int connectionId) {
-        System.out.println("Client disconnected");
-        Client<T> theClient = activeClients.get(connectionId);
-        System.out.println("after Client disconnected");
-        if (theClient == null)
-            System.out.println("theClient is null");
-        if (theClient.getUser() == null)
-            System.out.println("theClient.getUser() is null");
-        System.out.println(theClient.getUser().getUsername() + " disconnected");
         String username = activeClients.remove(connectionId).getUser().getUsername();
-
-        for (HashSet<Client<T>> subscribedClients : subscriptions.values()) {
-            Iterator<Client<T>> iterator = subscribedClients.iterator();
-            while (iterator.hasNext()) {
-                Client<T> client = iterator.next();
-                if (client.getUser().getUsername().equals(username)) {
-                    iterator.remove();
+        synchronized (subscriptions) {
+            for (HashSet<Client<T>> subscribedClients : subscriptions.values()) {
+                Iterator<Client<T>> iterator = subscribedClients.iterator();
+                while (iterator.hasNext()) {
+                    Client<T> client = iterator.next();
+                    if (client.getUser().getUsername().equals(username)) {
+                        iterator.remove();
+                    }
                 }
             }
         }
@@ -100,10 +97,12 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public boolean isUserAlreadyActive(String username) {
-        for (Client<T> client : activeClients.values()) {
-            if (client.getUser() != null) {
-                if (client.getUser().getUsername().equals(username))
-                    return true;
+        synchronized (activeClients) {
+            for (Client<T> client : activeClients.values()) {
+                if (client.getUser() != null) {
+                    if (client.getUser().getUsername().equals(username))
+                        return true;
+                }
             }
         }
         return false;
@@ -124,26 +123,21 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public void subscribe(int connectionId, String destination, String id) {
         Client<T> client = getActiveClient(connectionId);
         User user = client.getUser();
-        System.out.println("[DEBUG]: user descriptions before user.addSubscription: " + user.getSubscriptions());
         user.addSubscription(id, destination);
-        System.out.println("[DEBUG]: user descriptions after user.addSubscription: " + user.getSubscriptions());
         HashSet<Client<T>> subscribesClients = subscriptions.computeIfAbsent(destination, k -> new HashSet<>());
-        System.out.println("[DEBUG]: subscriptions before subscribesClients.add: " + subscribesClients);
         subscribesClients.add(client);
-        System.out.println("[DEBUG]: subscriptions after subscribesClients.add: " + subscribesClients);
     }
 
     public void unsubscribe(int connectionId, String id) {
-        System.out.println("[DEBUG]: unsubscribe");
         Client<T> client = getActiveClient(connectionId);
-        User user = client.getUser();
-        String destination = user.getSubscriptions().get(id);
-        user.removeSubscription(id);
-        System.out.println("destination: " + destination);
-        System.out.println("subscriptions: " + subscriptions);
-        HashSet<Client<T>> subscribesClients = subscriptions.get(destination);
-        // we can assume that a case in which a client unsubscribe a channel that he hasnt joined to, is being resolved in the client
-        subscribesClients.remove(client);
+        synchronized (client) {
+            User user = client.getUser();
+            String destination = user.getSubscriptions().get(id);
+            user.removeSubscription(id);
+            HashSet<Client<T>> subscribesClients = subscriptions.get(destination);
+            // we can assume that a case in which a client unsubscribe a channel that he hasnt joined to, is being resolved in the client
+            subscribesClients.remove(client);
+        }
     }
 
     public User getUserByName(String username) {

@@ -182,6 +182,8 @@ vector<string> StompProtocol:: processSend(vector<string> args) {
     for(Event event : events.events) {
         SendFrame frame(event.get_channel_name(), event);
         reportedEvents.push_back(frame.toString());
+        cout << "[DEBUG] send frame is: " << endl;
+        cout << frame.toString() << endl;
     }
     // updating the summary will be done in the processMessage function - rememeber to join before requesting summary
     return reportedEvents;
@@ -369,13 +371,34 @@ string StompProtocol:: processReceipt(vector<string> args) {
     return receipt;
 }
 
-void StompProtocol:: processMessage(vector<string> args) {
-    string sub = args[1];
-    string msgID = args[2];
-    string destination = args[3];
-    Event event(args[4]);
-    string channel = event.get_channel_name();
-    if(reportedEvents.find(channel) == reportedEvents.end()) {
+void StompProtocol::processMessage(vector<string> args) {
+    std::unordered_map<std::string, std::string> argMap;
+    for (const std::string& arg : args) {
+        size_t pos = arg.find(':');
+        if (pos != std::string::npos) {
+            std::string key = arg.substr(0, pos);
+            std::string value = arg.substr(pos + 1);
+            argMap[key] = value;
+        }
+    }
+
+    std::string destination = argMap["destination"];
+    std::string event_name = argMap["event_name"];
+    std::string city = argMap["city"];
+    int date_time = std::stoi(argMap["date_time"]);
+    std::string description = argMap["description"];
+    std::string general_information = argMap["general_information"];
+    std::string active = argMap["active"];
+    std::string forces_arrival_at_scene = argMap["forces_arrival_at_scene"];
+
+    std::map<std::string, std::string> general_info_map;
+    general_info_map["general_information"] = general_information;
+    general_info_map["active"] = active;
+    general_info_map["forces_arrival_at_scene"] = forces_arrival_at_scene;
+
+    Event event(destination, city, event_name, date_time, description, general_info_map);
+    std::string channel = event.get_channel_name();
+    if (reportedEvents.find(channel) == reportedEvents.end()) {
         reportedEvents[channel] = {};
     }
     reportedEvents[channel].push_back(event);

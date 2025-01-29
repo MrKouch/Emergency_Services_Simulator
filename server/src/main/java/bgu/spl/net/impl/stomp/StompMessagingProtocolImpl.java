@@ -30,94 +30,98 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<String> {
         for (String line : lines) {
             System.out.println(line);
         }
-        if (command.equals("CONNECT")) {
-            ConcurrentHashMap<String, String> connectFrame = FramesParser.parse("connect", Arrays.copyOfRange(lines, 1, lines.length));
-            if (connectFrame.get("missing_key") != null) {
-                connections.send(connectionId, FramesParser.toStringMalformedError("CONNECT", connectFrame));
-                handleError(connectionId, connections, false);
-            }
-            else {
-                String username = connectFrame.get("login");
-                String password = connectFrame.get("passcode");
-                if (connections.isUserAlreadyActive(username)) {
-                    Frame userAlreadyLoggedInFrame = ErrorFrame.getErrorFrame("USER ALREADY LOGGED IN");
-                    connections.send(connectionId, userAlreadyLoggedInFrame.toString());
+        if (shouldTerminate == false) {
+            if (command.equals("CONNECT")) {
+                ConcurrentHashMap<String, String> connectFrame = FramesParser.parse("connect", Arrays.copyOfRange(lines, 1, lines.length));
+                if (connectFrame.get("missing_key") != null) {
+                    connections.send(connectionId, FramesParser.toStringMalformedError("CONNECT", connectFrame));
                     handleError(connectionId, connections, false);
                 }
                 else {
-                    User user = connections.getUserByName(username);
-                    if (user == null || (user != null && user.getPassword().equals(password))) {
-                        if (user == null) {
-                            user = new User(username, password);
-                            connections.addUser(username, user);
-                        }
-                        start(connectionId, connections, user);
-                        Frame connectedFrame = ConnectedFrame.getConnectedFrame();
-                        connections.send(connectionId, connectedFrame.toString());
-                    }
-                    else {
-                        Frame wrongPasswordFrame = ErrorFrame.getErrorFrame("WRONG PASSWORD");
-                        connections.send(connectionId, wrongPasswordFrame.toString());
+                    String username = connectFrame.get("login");
+                    String password = connectFrame.get("passcode");
+                    if (connections.isUserAlreadyActive(username)) {
+                        Frame userAlreadyLoggedInFrame = ErrorFrame.getErrorFrame("USER ALREADY LOGGED IN");
+                        connections.send(connectionId, userAlreadyLoggedInFrame.toString());
                         handleError(connectionId, connections, false);
                     }
+                    else {
+                        User user = connections.getUserByName(username);
+                        if (user == null || (user != null && user.getPassword().equals(password))) {
+                            if (user == null) {
+                                user = new User(username, password);
+                                connections.addUser(username, user);
+                            }
+                            start(connectionId, connections, user);
+                            Frame connectedFrame = ConnectedFrame.getConnectedFrame();
+                            connections.send(connectionId, connectedFrame.toString());
+                        }
+                        else {
+                            Frame wrongPasswordFrame = ErrorFrame.getErrorFrame("WRONG PASSWORD");
+                            connections.send(connectionId, wrongPasswordFrame.toString());
+                            handleError(connectionId, connections, false);
+                        }
+                    }
                 }
-            }
-        } else if (command.equals("DISCONNECT")) {
-            ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
-            if (disconnectFrame.get("missing_key") != null) {
-                connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
-                handleError(connectionId, connections, true);
-            }
-            else {
-                ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
-                connections.disconnect(connectionId);
-
-                Frame receiptFrame = ReceiptFrame.getReceiptFrame(disconnectFrame.get("receipt"));
-                connectionHandler.send(receiptFrame.toString());
-            }   
-        }
-        else if (command.equals("SUBSCRIBE")) {
-            ConcurrentHashMap<String, String> subscribeFrame = FramesParser.parse("subscribe", Arrays.copyOfRange(lines, 1, lines.length));
-            if (subscribeFrame.get("missing_key") != null) {
-                connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
-                handleError(connectionId, connections, true);
-            }
-            else {
-                String destination = subscribeFrame.get("destination");
-                String id = subscribeFrame.get("id");
-                String receiptId = subscribeFrame.get("receipt");
-                connections.subscribe(connectionId, destination, id);
-                Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
-                connections.send(connectionId, receiptFrame.toString());
-            }
-        } else if (command.equals("UNSUBSCRIBE")) {
-            ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
-            if (unsubscribeFrame.get("missing_key") != null) {
-                connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
-                handleError(connectionId, connections, true);
-            }
-            else {
-                String id = unsubscribeFrame.get("id");
-                connections.unsubscribe(connectionId, id);
-                String receiptId = unsubscribeFrame.get("receipt");
-                Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
-                connections.send(connectionId, receiptFrame.toString());
-            }
-        } else if (command.equals("SEND")) {
-            ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
-            if (sendFrame.get("missing_key") != null) {
-                connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
-                handleError(connectionId, connections, true);
-            }
-            else {
-                String destination = sendFrame.get("destination");
-                if (!connections.isUserSubscribedToChannel(connectionId, destination)) {
-                    Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
-                    connections.send(connectionId, userIsNotSubscribedFrame.toString());
+            } else if (command.equals("DISCONNECT")) {
+                ConcurrentHashMap<String, String> disconnectFrame = FramesParser.parse("disconnect", Arrays.copyOfRange(lines, 1, lines.length));
+                if (disconnectFrame.get("missing_key") != null) {
+                    connections.send(connectionId, FramesParser.toStringMalformedError("DISCONNECT", disconnectFrame));
                     handleError(connectionId, connections, true);
                 }
-                else
-                    connections.send(destination, sendFrame);
+                else {
+                    ConnectionHandler<String> connectionHandler = connections.getActiveClient(connectionId).getcHandler();
+                    connections.disconnect(connectionId);
+    
+                    Frame receiptFrame = ReceiptFrame.getReceiptFrame(disconnectFrame.get("receipt"));
+                    connectionHandler.send(receiptFrame.toString());
+                }   
+            }
+            else if (command.equals("SUBSCRIBE")) {
+                ConcurrentHashMap<String, String> subscribeFrame = FramesParser.parse("subscribe", Arrays.copyOfRange(lines, 1, lines.length));
+                if (subscribeFrame.get("missing_key") != null) {
+                    connections.send(connectionId, FramesParser.toStringMalformedError("SUBSCRIBE", subscribeFrame));
+                    handleError(connectionId, connections, true);
+                }
+                else {
+                    String destination = subscribeFrame.get("destination");
+                    String id = subscribeFrame.get("id");
+                    String receiptId = subscribeFrame.get("receipt");
+                    connections.subscribe(connectionId, destination, id);
+                    Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
+                    connections.send(connectionId, receiptFrame.toString());
+                }
+            } else if (command.equals("UNSUBSCRIBE")) {
+                ConcurrentHashMap<String, String> unsubscribeFrame = FramesParser.parse("unsubscribe", Arrays.copyOfRange(lines, 1, lines.length));
+                if (unsubscribeFrame.get("missing_key") != null) {
+                    connections.send(connectionId, FramesParser.toStringMalformedError("UNSUBSCRIBE", unsubscribeFrame));
+                    handleError(connectionId, connections, true);
+                }
+                else {
+                    String id = unsubscribeFrame.get("id");
+                    connections.unsubscribe(connectionId, id);
+                    String receiptId = unsubscribeFrame.get("receipt");
+                    Frame receiptFrame = ReceiptFrame.getReceiptFrame(receiptId);
+                    connections.send(connectionId, receiptFrame.toString());
+                }
+            } else if (command.equals("SEND")) {
+                ConcurrentHashMap<String, String> sendFrame = FramesParser.parse("send", Arrays.copyOfRange(lines, 1, lines.length));
+                if (sendFrame.get("missing_key") != null) {
+                    connections.send(connectionId, FramesParser.toStringMalformedError("SEND", sendFrame));
+                    handleError(connectionId, connections, true);
+                }
+                else {
+                    String destination = sendFrame.get("destination");
+                    if (!connections.isUserSubscribedToChannel(connectionId, destination) && shouldTerminate == false) {
+                        Frame userIsNotSubscribedFrame = ErrorFrame.getErrorFrame("USER IS NOT SUBSCRIBED");
+                        connections.send(connectionId, userIsNotSubscribedFrame.toString());
+                        handleError(connectionId, connections, true);
+                        shouldTerminate = true;
+                    }
+                    else if (shouldTerminate == false) {
+                        connections.send(destination, sendFrame);
+                    }
+                }
             }
         }
     }

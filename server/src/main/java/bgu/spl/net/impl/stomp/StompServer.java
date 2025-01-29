@@ -8,12 +8,8 @@ public class StompServer {
             System.out.println("Not enough arguments...");
             System.exit(1);
         }
-        else {
-            System.out.println("args: " + args[0] + " " + args[1]);
-        }
 
         int port = Integer.parseInt(args[0].substring(1, args[0].length() - 1));
-        System.out.println("port: " + port);
         String serverType = args[1];
 
         if (serverType.equals("tpc")) {

@@ -31,5 +31,4 @@ public interface Connections<T> {
 
     void addUser(String username, User user);
 
-    void closeConnection(int connectionId);
 }

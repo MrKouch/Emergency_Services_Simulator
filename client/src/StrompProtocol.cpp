@@ -47,7 +47,7 @@ void StompProtocol::createDepartingFrame(string& line) {
         }
         else {
             if(args.size() != 5 or args[1] != HOST or args[2] != to_string(PORT)) {
-                cout << "invalid login command!" << endl;
+                cout << "login command needs 3 args: {host:port} {username} {password}" << endl;
                 return;
             }
             frame = processConnect(args);
